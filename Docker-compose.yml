@@ -1,0 +1,27 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgres:15
+    restart: always
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: 1234
+      POSTGRES_DB: gogotaxi
+    ports:
+      - "5433:5432"
+
+  backend:
+    build: .
+    restart: always
+    depends_on:
+      - db
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql://admin:1234@db:5432/gogotaxi?schema=public
+      PORT: 3000
+    command: >
+      sh -c "npx prisma db push && npm run start"

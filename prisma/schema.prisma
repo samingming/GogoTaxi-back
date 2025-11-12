@@ -12,8 +12,8 @@ datasource db {
 // 1. users 테이블 설계
 model User {
   id        String    @id @default(uuid()) // PK, 문자열 ID
-  name      String
   userid    String    @unique // 로그인 ID (중복 불가)
+  name      String
   password  String    // 해시된 비밀번호
   gender    String?   // ?는 Null 가능
   phone     String?
@@ -42,7 +42,6 @@ model SocialAccount {
   user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId         String
   createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
 
   @@unique([provider, providerUserId])
 }
