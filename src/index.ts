@@ -1,5 +1,5 @@
 import express from 'express';
-import cors from 'cors';
+import cors, { type CorsOptions } from 'cors';
 import dotenv from 'dotenv';
 import { PrismaClient, type User } from '@prisma/client';
 import bcrypt from 'bcrypt';
@@ -21,6 +21,50 @@ if (!JWT_SECRET) {
 }
 
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
+
+const RAW_ALLOWED_ORIGINS =
+  process.env.ALLOWED_ORIGINS ??
+  'http://localhost:5173,https://yeeuneey.github.io';
+const allowedOrigins = RAW_ALLOWED_ORIGINS.split(',')
+  .map(origin => origin.trim())
+  .filter(origin => origin.length > 0);
+
+const corsOptions: CorsOptions = {
+  origin(origin, callback) {
+    if (!origin) {
+      callback(null, true);
+      return;
+    }
+    if (allowedOrigins.length === 0 || allowedOrigins.includes(origin)) {
+      callback(null, true);
+      return;
+    }
+    callback(
+      new Error(
+        `Origin ${origin} is not allowed by CORS (configure ALLOWED_ORIGINS).`
+      )
+    );
+  },
+  credentials: true,
+  optionsSuccessStatus: 200,
+};
+
+const toTrimmedString = (value: unknown) => {
+  if (Array.isArray(value)) {
+    return value.length > 0 ? String(value[0]).trim() : '';
+  }
+  if (typeof value === 'string') {
+    return value.trim();
+  }
+  return '';
+};
+
+const toBoolean = (value: unknown) => {
+  if (typeof value === 'string') {
+    return value.toLowerCase() === 'true';
+  }
+  return Boolean(value);
+};
 
 type SocialProvider = 'kakao' | 'google';
 
@@ -191,45 +235,70 @@ const ensureUserForSocialProfile = async (
   return user;
 };
 
-app.use(cors());
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
 app.use(express.json());
 
 app.get('/api/test', (_req, res) => {
   res.json({ message: 'Backend server running' });
 });
 
+app.get('/api/auth/check-id', async (req, res) => {
+  try {
+    const userid = toTrimmedString(req.query.userid);
+    if (!userid) {
+      return res
+        .status(400)
+        .json({ error: 'Query parameter "userid" is required.' });
+    }
+
+    const existing = await prisma.user.findUnique({
+      where: { userid },
+      select: { id: true },
+    });
+
+    res.status(200).json({ available: !existing });
+  } catch (error) {
+    console.error('check-id error:', error);
+    res.status(500).json({ error: 'Unexpected server error.' });
+  }
+});
+
 app.post('/api/auth/register', async (req, res) => {
   try {
     const { userid, pw, name, gender, sms, terms, phone, birthDate } = req.body;
 
-    if (!userid || !pw || !name) {
+    const normalizedUserid = toTrimmedString(userid);
+    const normalizedName = toTrimmedString(name);
+    const password = typeof pw === 'string' ? pw : '';
+
+    if (!normalizedUserid || !password || !normalizedName) {
       return res.status(400).json({ error: 'Missing required fields.' });
     }
 
-    const normalizedPhone =
-      typeof phone === 'string' && phone.trim().length > 0
-        ? phone.replace(/\D/g, '')
-        : null;
+    const digitsOnlyPhone = toTrimmedString(phone).replace(/\D/g, '');
+    const normalizedPhone = digitsOnlyPhone.length > 0 ? digitsOnlyPhone : null;
 
     let parsedBirthDate: Date | null = null;
-    if (typeof birthDate === 'string' && birthDate.trim().length > 0) {
-      const candidate = new Date(birthDate);
+    const birthDateInput = toTrimmedString(birthDate);
+    if (birthDateInput) {
+      const candidate = new Date(birthDateInput);
       if (Number.isNaN(candidate.getTime())) {
         return res.status(400).json({ error: 'Invalid birthDate format.' });
       }
       parsedBirthDate = candidate;
     }
 
-    const hashedPassword = await bcrypt.hash(pw, 10);
+    const hashedPassword = await bcrypt.hash(password, 10);
 
     const newUser = await prisma.user.create({
       data: {
-        userid,
+        userid: normalizedUserid,
         password: hashedPassword,
-        name,
-        gender: gender || null,
-        smsConsent: Boolean(sms),
-        termsConsent: Boolean(terms),
+        name: normalizedName,
+        gender: toTrimmedString(gender) || null,
+        smsConsent: toBoolean(sms),
+        termsConsent: toBoolean(terms),
         phone: normalizedPhone,
         birthDate: parsedBirthDate,
       },
@@ -238,6 +307,11 @@ app.post('/api/auth/register', async (req, res) => {
     res.status(201).json({
       message: 'Signup successful.',
       userId: newUser.id,
+      user: {
+        id: newUser.id,
+        userid: newUser.userid,
+        name: newUser.name,
+      },
     });
   } catch (error: any) {
     if (error.code === 'P2002' && error.meta?.target?.includes('userid')) {
@@ -250,21 +324,26 @@ app.post('/api/auth/register', async (req, res) => {
 
 app.post('/api/auth/login', async (req, res) => {
   try {
-    const { id, pw } = req.body;
+    const { id, userid, pw } = req.body;
 
-    if (!id || !pw) {
-      return res.status(400).json({ error: 'ID and password are required.' });
+    const loginId = toTrimmedString(userid) || toTrimmedString(id);
+    const password = typeof pw === 'string' ? pw : '';
+
+    if (!loginId || !password) {
+      return res
+        .status(400)
+        .json({ error: 'User ID and password are required.' });
     }
 
     const user = await prisma.user.findUnique({
-      where: { userid: id },
+      where: { userid: loginId },
     });
 
     if (!user) {
       return res.status(404).json({ error: 'User does not exist.' });
     }
 
-    const isPasswordValid = await bcrypt.compare(pw, user.password);
+    const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
       return res.status(401).json({ error: 'Password mismatch.' });
     }
@@ -331,10 +410,13 @@ app.post('/api/auth/social', async (req, res) => {
 
 app.get('/api/profile/:userid', async (req, res) => {
   try {
-    const { userid } = req.params;
+    const normalizedUserid = toTrimmedString(req.params.userid);
+    if (!normalizedUserid) {
+      return res.status(400).json({ error: 'User ID is required.' });
+    }
 
     const user = await prisma.user.findUnique({
-      where: { userid },
+      where: { userid: normalizedUserid },
       select: {
         id: true,
         userid: true,
