@@ -1,113 +1,340 @@
-// src/index.ts (백엔드)
-
 import express from 'express';
 import cors from 'cors';
-import { PrismaClient } from '@prisma/client';
-import bcrypt from 'bcrypt'; // bcrypt import 확인
+import dotenv from 'dotenv';
+import { PrismaClient, type User } from '@prisma/client';
+import bcrypt from 'bcrypt';
+import jwt from 'jsonwebtoken';
+import fetch from 'node-fetch';
+import { randomUUID } from 'node:crypto';
+
+dotenv.config();
 
 const app = express();
-const port = 3000;
+const port = Number(process.env.PORT) || 3000;
 
 const prisma = new PrismaClient();
+const prismaAny = prisma as Record<string, any>;
+
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+  throw new Error('JWT_SECRET is not configured.');
+}
+
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
+
+type SocialProvider = 'kakao' | 'google';
+
+interface ProviderProfile {
+  provider: SocialProvider;
+  providerUserId: string;
+  email?: string;
+  name?: string;
+  profileImage?: string;
+}
+
+interface SocialLoginRequestBody {
+  provider?: SocialProvider;
+  accessToken?: string;
+  idToken?: string;
+}
+
+interface KakaoProfileResponse {
+  id: number | string;
+  kakao_account?: {
+    email?: string;
+    profile?: {
+      nickname?: string;
+      profile_image_url?: string;
+      thumbnail_image_url?: string;
+    };
+  };
+  properties?: {
+    nickname?: string;
+    profile_image?: string;
+    thumbnail_image?: string;
+  };
+}
+
+interface GoogleTokenInfo {
+  sub: string;
+  email?: string;
+  name?: string;
+  picture?: string;
+  aud: string;
+}
+
+const createJwt = (userId: string) =>
+  jwt.sign({ userId }, JWT_SECRET, { expiresIn: '7d' });
+
+const fetchKakaoProfile = async (accessToken: string): Promise<ProviderProfile> => {
+  const response = await fetch('https://kapi.kakao.com/v2/user/me', {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Kakao API error: ${response.status} ${errorText}`);
+  }
+
+  const data = (await response.json()) as KakaoProfileResponse;
+  const providerUserId = String(data.id);
+  const kakaoAccount = data.kakao_account;
+  const nickname =
+    kakaoAccount?.profile?.nickname ??
+    data.properties?.nickname ??
+    'Kakao User';
+  const profileImage =
+    kakaoAccount?.profile?.profile_image_url ??
+    data.properties?.profile_image;
+
+  const profile: ProviderProfile = {
+    provider: 'kakao',
+    providerUserId,
+    name: nickname,
+  };
+
+  if (kakaoAccount?.email) {
+    profile.email = kakaoAccount.email;
+  }
+
+  if (profileImage) {
+    profile.profileImage = profileImage;
+  }
+
+  return profile;
+};
+
+const fetchGoogleProfile = async (token: string): Promise<ProviderProfile> => {
+  const response = await fetch(
+    `https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(token)}`
+  );
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(
+      `Google token verification error: ${response.status} ${errorText}`
+    );
+  }
+
+  const data = (await response.json()) as GoogleTokenInfo;
+
+  if (GOOGLE_CLIENT_ID && data.aud !== GOOGLE_CLIENT_ID) {
+    throw new Error('Google token audience mismatch.');
+  }
+
+  const profile: ProviderProfile = {
+    provider: 'google',
+    providerUserId: data.sub,
+    name: data.name ?? 'Google User',
+  };
+
+  if (data.email) {
+    profile.email = data.email;
+  }
+
+  if (data.picture) {
+    profile.profileImage = data.picture;
+  }
+
+  return profile;
+};
+
+const ensureUserForSocialProfile = async (
+  profile: ProviderProfile
+): Promise<User> => {
+  const existingSocial = await prismaAny.socialAccount.findUnique({
+    where: {
+      provider_providerUserId: {
+        provider: profile.provider,
+        providerUserId: profile.providerUserId,
+      },
+    },
+    include: { user: true },
+  });
+
+  if (existingSocial) {
+    await prismaAny.socialAccount.update({
+      where: { id: existingSocial.id },
+      data: {
+        email: profile.email ?? existingSocial.email,
+        displayName: profile.name ?? existingSocial.displayName,
+        profileImage: profile.profileImage ?? existingSocial.profileImage,
+      },
+    });
+
+    return existingSocial.user;
+  }
+
+  const hashedPassword = await bcrypt.hash(randomUUID(), 10);
+  const defaultName =
+    profile.name ??
+    (profile.provider === 'kakao' ? 'Kakao User' : 'Google User');
+
+  const user = await prisma.user.create({
+    data: {
+      userid: `${profile.provider}_${profile.providerUserId}`,
+      password: hashedPassword,
+      name: defaultName,
+      gender: null,
+      socialAccounts: {
+        create: {
+          provider: profile.provider,
+          providerUserId: profile.providerUserId,
+          email: profile.email,
+          displayName: profile.name ?? defaultName,
+          profileImage: profile.profileImage,
+        },
+      },
+    } as any,
+  } as any);
+
+  return user;
+};
 
 app.use(cors());
 app.use(express.json());
 
-app.get('/api/test', (req, res) => {
-  res.json({ message: '백엔드 서버 동작 중! 🚀' });
+app.get('/api/test', (_req, res) => {
+  res.json({ message: 'Backend server running' });
 });
 
-// 4. 회원가입 API (POST /api/auth/register)
 app.post('/api/auth/register', async (req, res) => {
   try {
-    const { userid, pw, name, gender, sms, terms } = req.body;
+    const { userid, pw, name, gender, sms, terms, phone, birthDate } = req.body;
 
     if (!userid || !pw || !name) {
-      return res.status(400).json({ error: '필수 정보가 누락되었습니다.' });
+      return res.status(400).json({ error: 'Missing required fields.' });
+    }
+
+    const normalizedPhone =
+      typeof phone === 'string' && phone.trim().length > 0
+        ? phone.replace(/\D/g, '')
+        : null;
+
+    let parsedBirthDate: Date | null = null;
+    if (typeof birthDate === 'string' && birthDate.trim().length > 0) {
+      const candidate = new Date(birthDate);
+      if (Number.isNaN(candidate.getTime())) {
+        return res.status(400).json({ error: 'Invalid birthDate format.' });
+      }
+      parsedBirthDate = candidate;
     }
 
     const hashedPassword = await bcrypt.hash(pw, 10);
 
     const newUser = await prisma.user.create({
       data: {
-        userid, // 'userid: userid'의 축약형
+        userid,
         password: hashedPassword,
         name,
         gender: gender || null,
-        smsConsent: sms || false,
-        termsConsent: terms || true,
+        smsConsent: Boolean(sms),
+        termsConsent: Boolean(terms),
+        phone: normalizedPhone,
+        birthDate: parsedBirthDate,
       },
     });
 
     res.status(201).json({
-      message: '회원가입 성공!',
+      message: 'Signup successful.',
       userId: newUser.id,
     });
   } catch (error: any) {
     if (error.code === 'P2002' && error.meta?.target?.includes('userid')) {
-      return res.status(409).json({ error: '이미 사용 중인 아이디입니다.' });
+      return res.status(409).json({ error: 'User ID already in use.' });
     }
-    console.error(error);
-    res.status(500).json({ error: '서버 내부 오류가 발생했습니다.' });
+    console.error('register error:', error);
+    res.status(500).json({ error: 'Unexpected server error.' });
   }
 });
 
-// --- ⬇️ [신규] 로그인 API 추가 ⬇️ ---
-
 app.post('/api/auth/login', async (req, res) => {
   try {
-    const { id, pw } = req.body; // 프론트에서 id, pw로 보냅니다.
+    const { id, pw } = req.body;
 
     if (!id || !pw) {
-      return res.status(400).json({ error: '아이디와 비밀번호를 입력하세요.' });
+      return res.status(400).json({ error: 'ID and password are required.' });
     }
 
-    // 1. DB에서 아이디로 사용자 찾기
     const user = await prisma.user.findUnique({
-      where: {
-        userid: id, // 스키마의 'userid' 필드로 찾음
-      },
+      where: { userid: id },
     });
 
-    // 2. 사용자가 없으면
     if (!user) {
-      return res.status(404).json({ error: '존재하지 않는 아이디입니다.' });
+      return res.status(404).json({ error: 'User does not exist.' });
     }
 
-    // 3. 비밀번호 비교
     const isPasswordValid = await bcrypt.compare(pw, user.password);
     if (!isPasswordValid) {
-      return res.status(401).json({ error: '비밀번호가 일치하지 않습니다.' });
+      return res.status(401).json({ error: 'Password mismatch.' });
     }
 
-    // 4. 로그인 성공 (나중에는 여기서 JWT 토큰을 발급합니다)
+    const token = createJwt(user.id);
+
     res.status(200).json({
-      message: '로그인 성공!',
+      message: 'Login successful.',
+      token,
       user: {
         id: user.id,
         userid: user.userid,
         name: user.name,
       },
     });
-
-  } catch (error: any) {
-    console.error(error);
-    res.status(500).json({ error: '서버 내부 오류가 발생했습니다.' });
+  } catch (error) {
+    console.error('login error:', error);
+    res.status(500).json({ error: 'Unexpected server error.' });
   }
 });
 
-// --- ⬇️ [신규] 내 프로필 조회 API 추가 ⬇️ ---
+app.post('/api/auth/social', async (req, res) => {
+  try {
+    const { provider, accessToken, idToken } =
+      req.body as SocialLoginRequestBody;
+
+    if (provider !== 'kakao' && provider !== 'google') {
+      return res.status(400).json({ error: 'Unsupported social provider.' });
+    }
+
+    let profile: ProviderProfile;
+
+    if (provider === 'kakao') {
+      if (!accessToken) {
+        return res.status(400).json({ error: 'Kakao accessToken is required.' });
+      }
+      profile = await fetchKakaoProfile(accessToken);
+    } else {
+      const tokenToVerify = idToken ?? accessToken;
+      if (!tokenToVerify) {
+        return res.status(400).json({ error: 'Google idToken is required.' });
+      }
+      profile = await fetchGoogleProfile(tokenToVerify);
+    }
+
+    const user = await ensureUserForSocialProfile(profile);
+    const token = createJwt(user.id);
+
+    return res.status(200).json({
+      message: 'Social login successful.',
+      token,
+      user: {
+        id: user.id,
+        userid: user.userid,
+        name: user.name,
+      },
+      providerProfile: profile,
+    });
+  } catch (error) {
+    console.error('social login error:', error);
+    res.status(500).json({ error: 'Social login failed.' });
+  }
+});
 
 app.get('/api/profile/:userid', async (req, res) => {
   try {
-    const { userid } = req.params; // URL 경로에서 :userid 값을 가져옴
+    const { userid } = req.params;
 
-    // 1. DB에서 해당 아이디의 사용자 찾기
     const user = await prisma.user.findUnique({
-      where: {
-        userid: userid,
-      },
-      // ⚠️ 중요: 비밀번호를 제외하고 필요한 정보만 선택해서 보냅니다.
+      where: { userid },
       select: {
         id: true,
         userid: true,
@@ -118,22 +345,17 @@ app.get('/api/profile/:userid', async (req, res) => {
       },
     });
 
-    // 2. 사용자가 없으면 404 에러
     if (!user) {
-      return res.status(404).json({ error: '사용자 정보를 찾을 수 없습니다.' });
+      return res.status(404).json({ error: 'User not found.' });
     }
 
-    // 3. 사용자 정보를 프론트엔드에 전송
     res.status(200).json(user);
-
-  } catch (error: any) {
-    console.error('프로필 조회 오류:', error);
-    res.status(500).json({ error: '서버 내부 오류가 발생했습니다.' });
+  } catch (error) {
+    console.error('profile error:', error);
+    res.status(500).json({ error: 'Unexpected server error.' });
   }
 });
 
-// --- ⬆️ [신규] 내 프로필 조회 API 추가 ⬆️ ---
-
 app.listen(port, () => {
-  console.log(`🚀 백엔드 서버가 http://localhost:${port} 에서 실행 중입니다.`);
+  console.log(`🚕 Backend server listening on http://localhost:${port}`);
 });

@@ -22,6 +22,7 @@ model User {
   termsConsent Boolean   @default(true)
   paymentPassword String?
   createdAt DateTime  @default(now())
+  socialAccounts SocialAccount[]
 
   // 1:N 관계 (나중에 추가할 테이블들)
   // createdRooms Room[]
@@ -29,4 +30,19 @@ model User {
   // reviews Review[]
   // reports Report[]
   // paymentMethods PaymentMethod[]
+}
+
+model SocialAccount {
+  id             String   @id @default(uuid())
+  provider       String
+  providerUserId String
+  email          String?
+  displayName    String?
+  profileImage   String?
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId         String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([provider, providerUserId])
 }
