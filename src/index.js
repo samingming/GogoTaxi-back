@@ -104,7 +104,9 @@ const registerHandler = async (req, res) => {
     }
     // name을 스키마에 안 넣었으면 null 허용
     const existing = await prisma.user.findUnique({ where: { email } });
-    if (existing) return res.status(409).json({ message: "Email already registered" });
+    if (existing) {
+      await prisma.user.delete({ where: { email } });
+    }
 
     const passwordHash = await bcrypt.hash(password, 10);
     const user = await prisma.user.create({

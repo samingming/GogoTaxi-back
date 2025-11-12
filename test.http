@@ -1,0 +1,18 @@
+### 회원가입
+POST http://localhost:4000/auth/register
+Content-Type: application/json
+
+{
+  "email": "test1@example.com",
+  "name": "Tester",
+  "password": "pass1234!"
+}
+
+### 로그인
+POST http://localhost:4000/auth/login
+Content-Type: application/json
+
+{
+  "email": "test1@example.com",
+  "password": "pass1234!"
+}
