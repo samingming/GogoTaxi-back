@@ -1,13 +1,13 @@
 import { Router } from 'express';
-import { SignUpSchema, LoginSchema } from './dto.js';
-import { signUp, login } from './service.js';
+import { SignUpDto, LoginDto } from './dto';
+import { signUp, login } from './service';
 
 export const authRouter = Router();
 
 // 회원가입
 authRouter.post('/signup', async (req, res) => {
   try {
-    const input = SignUpSchema.parse(req.body);
+    const input = SignUpDto.parse(req.body);
     const result = await signUp(input);
     res.status(201).json(result);
   } catch (e: any) {
@@ -21,7 +21,7 @@ authRouter.post('/signup', async (req, res) => {
 // 로그인
 authRouter.post('/login', async (req, res) => {
   try {
-    const input = LoginSchema.parse(req.body);
+    const input = LoginDto.parse(req.body);
     const result = await login(input);
     res.json(result);
   } catch (e: any) {

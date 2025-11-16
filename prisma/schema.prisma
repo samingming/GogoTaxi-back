@@ -8,9 +8,59 @@ datasource db {
 }
 
 model User {
-  id           Int      @id @default(autoincrement())
+  id           String   @id @default(cuid())
   email        String   @unique
-  name         String?  // 없으면 추가(옵션)
   passwordHash String
+  nickname     String
   createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // ⬇⬇⬇ 누락되어 있던 반대편(Back-Relation) 추가
+  roomsHosted Room[]       @relation("HostRooms") // 내가 방장인 방들 (1:N)
+  memberships RoomMember[] // 내가 가입한 방들 (1:N)
+}
+
+model Room {
+  id            String     @id @default(cuid())
+  name          String
+  fromLat       Decimal    @db.Decimal(9, 6)
+  fromLng       Decimal    @db.Decimal(9, 6)
+  toLat         Decimal    @db.Decimal(9, 6)
+  toLng         Decimal    @db.Decimal(9, 6)
+  departureTime DateTime
+  capacity      Int
+  rule          RoomRule
+  status        RoomStatus @default(OPEN)
+
+  hostId String
+  host   User   @relation("HostRooms", fields: [hostId], references: [id]) // (N:1)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  members RoomMember[] // (1:N)
+}
+
+model RoomMember {
+  id       String   @id @default(cuid())
+  roomId   String
+  userId   String
+  joinedAt DateTime @default(now())
+
+  room Room @relation(fields: [roomId], references: [id])
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([roomId, userId])
+}
+
+enum RoomRule {
+  PEOPLE_FIRST
+  TIME_FIRST
+}
+
+enum RoomStatus {
+  OPEN
+  LOCKED
+  COMPLETED
+  CANCELED
 }

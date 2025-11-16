@@ -1,6 +1,6 @@
 import jwt from 'jsonwebtoken';
 
-export type AppJwtPayload = { sub: number; email: string };
+export type AppJwtPayload = { sub: string; email: string };
 
 const SECRET: jwt.Secret = (process.env.JWT_SECRET ?? 'dev') as jwt.Secret;
 

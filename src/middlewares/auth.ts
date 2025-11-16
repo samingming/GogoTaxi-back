@@ -1,7 +1,7 @@
 // src/middlewares/auth.ts
 import type { Request, Response, NextFunction } from 'express';
-import { verifyJwt } from '../lib/jwt.js';
-import type { AppJwtPayload } from '../lib/jwt.js';
+import { verifyJwt } from '../lib/jwt';
+import type { AppJwtPayload } from '../lib/jwt';
 
 declare global {
   namespace Express {

@@ -1,21 +1,11 @@
-import dotenv from "dotenv";
+import 'dotenv/config';
 
-dotenv.config();
-
-const normalizeCorsOrigin = (
-  value?: string
-): string | string[] | boolean => {
-  if (!value || value === "*") return "*";
-  const list = value
-    .split(",")
-    .map((item) => item.trim())
-    .filter(Boolean);
-  return list.length > 0 ? list : true;
+export const ENV = {
+  NODE_ENV: process.env.NODE_ENV ?? 'development',
+  PORT: Number(process.env.PORT ?? 8080),
+  DATABASE_URL: process.env.DATABASE_URL ?? ''
 };
 
-export const env = {
-  NODE_ENV: process.env.NODE_ENV ?? "development",
-  PORT: Number(process.env.PORT ?? 4000),
-  CORS_ORIGIN: normalizeCorsOrigin(process.env.CORS_ORIGIN),
-};
-
+if (!ENV.DATABASE_URL) {
+  console.warn('⚠️  DATABASE_URL is empty. Set it in .env');
+}
