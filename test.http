@@ -6,9 +6,9 @@ POST http://localhost:8080/api/auth/signup
 Content-Type: application/json
 
 {
-  "email": "admin@example.com",
-  "password": "Passw0rd!",
-  "nickname": "상아"
+  "email": "yeeuneey@example.com",
+  "password": "12345678",
+  "nickname": "예은"
 }
 
 ### 로그인
@@ -55,4 +55,14 @@ Content-Type: application/json
   "email": "yeye@example.com",
   "password": "yeye1234",
   "nickname": "예예"
+}
+
+### 실제 회원가입
+POST http://localhost:8080/api/auth/signup
+Content-Type: application/json
+
+{
+  "email": "ahnneu@naver.com",
+  "password": "tkddk128!!",
+  "nickname": "안느"
 }
