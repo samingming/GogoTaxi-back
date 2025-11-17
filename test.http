@@ -56,3 +56,13 @@ Content-Type: application/json
   "password": "yeye1234",
   "nickname": "예예"
 }
+
+### 실제 회원가입
+POST http://localhost:8080/api/auth/signup
+Content-Type: application/json
+
+{
+  "email": "ahnneu@naver.com",
+  "password": "tkddk128!!",
+  "nickname": "안느"
+}
