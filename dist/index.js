@@ -1,20 +1,34 @@
-import express from 'express';
-import cors from 'cors';
-import helmet from 'helmet';
-import pino from 'pino';
-import morgan from "morgan";
-import { ENV } from './config/env.ts';
-import { router } from './routes/index.ts';
-const logger = pino({ transport: { target: 'pino-pretty' } });
-const app = express();
-app.use(helmet());
-app.use(cors());
-app.use(express.json());
-app.use(morgan("dev"));
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = __importDefault(require("express"));
+const cors_1 = __importDefault(require("cors"));
+const helmet_1 = __importDefault(require("helmet"));
+const pino_1 = __importDefault(require("pino"));
+const pino_http_1 = __importDefault(require("pino-http"));
+const env_1 = require("./config/env");
+const routes_js_1 = require("./routes.js");
+const room_routes_1 = __importDefault(require("./routes/room.routes"));
+const logger = (0, pino_1.default)({ transport: { target: 'pino-pretty' } });
+const app = (0, express_1.default)();
+const PORT = Number(env_1.ENV.PORT) || 8080;
+app.use((0, helmet_1.default)());
+app.use((0, cors_1.default)({
+    origin: [
+        "http://localhost:5173", // 개발용
+        "https://ansangah.github.io", // 깃허브 Pages 도메인
+    ],
+    credentials: true,
+}));
+app.use(express_1.default.json());
+app.use((0, pino_http_1.default)({ logger }));
 app.get('/health', (_req, res) => {
-    res.json({ ok: true, env: ENV.NODE_ENV, time: new Date().toISOString() });
+    res.json({ ok: true, env: env_1.ENV.NODE_ENV, time: new Date().toISOString() });
 });
-app.use('/api', router);
-app.listen(ENV.PORT, () => {
-    logger.info(`🚀 Server listening on http://localhost:${ENV.PORT}`);
+app.use('/api', routes_js_1.router);
+app.listen(PORT, "0.0.0.0", () => {
+    console.log(`Server listening on ${PORT}`);
 });
+app.use("/api", room_routes_1.default);

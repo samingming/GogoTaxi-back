@@ -1,11 +1,18 @@
-import jwt from 'jsonwebtoken';
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.signJwt = signJwt;
+exports.verifyJwt = verifyJwt;
+const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const SECRET = (process.env.JWT_SECRET ?? 'dev');
 const RAW = process.env.JWT_EXPIRES_IN ?? '7d';
 const EXPIRES_IN = /^\d+$/.test(RAW) ? Number(RAW) : RAW ?? '7d';
-export function signJwt(payload) {
+function signJwt(payload) {
     const opts = { expiresIn: EXPIRES_IN };
-    return jwt.sign(payload, SECRET, opts);
+    return jsonwebtoken_1.default.sign(payload, SECRET, opts);
 }
-export function verifyJwt(token) {
-    return jwt.verify(token, SECRET);
+function verifyJwt(token) {
+    return jsonwebtoken_1.default.verify(token, SECRET);
 }

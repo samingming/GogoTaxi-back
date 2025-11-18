@@ -1,17 +1,12 @@
-import dotenv from "dotenv";
-dotenv.config();
-const normalizeCorsOrigin = (value) => {
-    if (!value || value === "*")
-        return "*";
-    const list = value
-        .split(",")
-        .map((item) => item.trim())
-        .filter(Boolean);
-    return list.length > 0 ? list : true;
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.ENV = void 0;
+require("dotenv/config");
+exports.ENV = {
+    NODE_ENV: process.env.NODE_ENV ?? 'development',
+    PORT: Number(process.env.PORT ?? 8080),
+    DATABASE_URL: process.env.DATABASE_URL ?? ''
 };
-export const ENV = {
-    NODE_ENV: process.env.NODE_ENV ?? "development",
-    PORT: Number(process.env.PORT ?? 4000),
-    CORS_ORIGIN: normalizeCorsOrigin(process.env.CORS_ORIGIN),
-};
-export const env = ENV;
+if (!exports.ENV.DATABASE_URL) {
+    console.warn('⚠️  DATABASE_URL is empty. Set it in .env');
+}

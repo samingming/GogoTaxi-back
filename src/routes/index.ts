@@ -1,5 +1,6 @@
 import { Router } from 'express';
-import { authRouter } from '../modules/auth/routes.ts';
+import { authRouter } from '../modules/auth/routes';
+import roomRouter from './room.routes';
 
 export const router = Router();
 
@@ -8,3 +9,4 @@ router.get('/health', (_req, res) => {
 });
 
 router.use('/auth', authRouter);
+router.use(roomRouter);

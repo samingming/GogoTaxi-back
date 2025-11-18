@@ -1,10 +1,13 @@
-import { z } from 'zod';
-export const SignUpSchema = z.object({
-    email: z.string().email(),
-    password: z.string().min(8).max(64),
-    name: z.string().min(1).max(30)
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.LoginDto = exports.SignUpDto = void 0;
+const zod_1 = require("zod");
+exports.SignUpDto = zod_1.z.object({
+    email: zod_1.z.string().email(),
+    password: zod_1.z.string().min(8).max(64),
+    nickname: zod_1.z.string().min(1).max(30)
 });
-export const LoginSchema = z.object({
-    email: z.string().email(),
-    password: z.string().min(8).max(64)
+exports.LoginDto = zod_1.z.object({
+    email: zod_1.z.string().email(),
+    password: zod_1.z.string().min(8).max(64)
 });

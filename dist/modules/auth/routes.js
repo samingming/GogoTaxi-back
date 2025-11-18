@@ -1,11 +1,15 @@
-import { Router } from 'express';
-import { SignUpSchema, LoginSchema } from './dto.ts';
-import { signUp, login } from './service.ts';
-export const authRouter = Router();
-authRouter.post('/signup', async (req, res) => {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.authRouter = void 0;
+const express_1 = require("express");
+const dto_1 = require("./dto");
+const service_1 = require("./service");
+exports.authRouter = (0, express_1.Router)();
+// 회원가입
+exports.authRouter.post('/signup', async (req, res) => {
     try {
-        const input = SignUpSchema.parse(req.body);
-        const result = await signUp(input);
+        const input = dto_1.SignUpDto.parse(req.body);
+        const result = await (0, service_1.signUp)(input);
         res.status(201).json(result);
     }
     catch (e) {
@@ -17,10 +21,11 @@ authRouter.post('/signup', async (req, res) => {
         res.status(500).json({ message: 'Internal error' });
     }
 });
-authRouter.post('/login', async (req, res) => {
+// 로그인
+exports.authRouter.post('/login', async (req, res) => {
     try {
-        const input = LoginSchema.parse(req.body);
-        const result = await login(input);
+        const input = dto_1.LoginDto.parse(req.body);
+        const result = await (0, service_1.login)(input);
         res.json(result);
     }
     catch (e) {
