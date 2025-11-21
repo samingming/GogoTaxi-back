@@ -6,6 +6,7 @@ const prisma_1 = require("../../lib/prisma");
 const service_1 = require("../wallet/service");
 const pricing_1 = require("./pricing");
 const client_1 = require("@prisma/client");
+const service_2 = require("../notifications/service");
 const idKey = (roomId, phase, userId) => `room:${roomId}:${phase}:${userId}`;
 async function upsertSettlement(params) {
     const { roomId, userId, role, ...data } = params;
@@ -46,6 +47,12 @@ async function holdEstimatedFare(roomId) {
             deposit: perHead,
             netAmount: perHead,
             status: client_1.SettlementRecordStatus.pending
+        });
+        (0, service_2.sendNotification)({
+            userId,
+            title: `방 "${room.title}" 예치금 차감`,
+            body: `${perHead.toLocaleString()}원이 예치금으로 차감되었습니다.`,
+            metadata: { roomId }
         });
     }
     await prisma_1.prisma.room.update({
@@ -123,5 +130,18 @@ async function finalizeRoomSettlement(roomId, actualFare) {
             settlementStatus: 'settled'
         }
     });
+    const summary = delta === 0
+        ? '추가 정산 금액 없이 종료되었습니다.'
+        : delta > 0
+            ? `예상보다 ${delta.toLocaleString()}원 더 나와 추가 징수되었습니다.`
+            : `예상보다 ${Math.abs(delta).toLocaleString()}원 적게 나와 환급되었습니다.`;
+    for (const userId of memberIds) {
+        (0, service_2.sendNotification)({
+            userId,
+            title: `방 "${room.title}" 정산 완료`,
+            body: `실요금 ${actualFare.toLocaleString()}원으로 정산되었습니다. ${summary}`,
+            metadata: { roomId, delta }
+        });
+    }
     return { delta, extraPerHead, refundPerHead };
 }

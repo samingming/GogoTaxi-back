@@ -4,6 +4,7 @@ import { requireAuth } from './middlewares/auth';
 import { walletRouter } from './modules/wallet/routes';
 import { settlementRouter } from './modules/settlement/routes';
 import { paymentsRouter } from './modules/payments/routes';
+import { notificationsRouter } from './modules/notifications/routes';
 
 export const router = Router();
 
@@ -19,6 +20,9 @@ router.use('/payments', paymentsRouter);
 
 // 정산
 router.use('/settlements', settlementRouter);
+
+// 알림
+router.use('/notifications', notificationsRouter);
 
 // 보호 라우트 예시 (토큰 필요)
 router.get('/me', requireAuth, (req, res) => {
