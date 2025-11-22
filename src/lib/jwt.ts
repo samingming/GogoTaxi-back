@@ -5,7 +5,7 @@ import { ENV } from '../config/env';
 export type TokenType = 'access' | 'refresh';
 export type AppJwtPayload = {
   sub: string;
-  email: string;
+  loginId: string;
   jti: string;
   type: TokenType;
 };
@@ -28,7 +28,7 @@ function decodeExpiry(token: string): Date | null {
   return new Date(decoded.exp * 1000);
 }
 
-function signToken(type: TokenType, payload: Pick<AppJwtPayload, 'sub' | 'email'>): SignResult {
+function signToken(type: TokenType, payload: Pick<AppJwtPayload, 'sub' | 'loginId'>): SignResult {
   const jti = randomUUID();
   const tokenPayload: AppJwtPayload = { ...payload, type, jti };
   const secret = type === 'access' ? ACCESS_SECRET : REFRESH_SECRET;
@@ -46,11 +46,11 @@ function verifyToken(type: TokenType, token: string): AppJwtPayload {
   return payload;
 }
 
-export function issueAccessToken(payload: Pick<AppJwtPayload, 'sub' | 'email'>) {
+export function issueAccessToken(payload: Pick<AppJwtPayload, 'sub' | 'loginId'>) {
   return signToken('access', payload);
 }
 
-export function issueRefreshToken(payload: Pick<AppJwtPayload, 'sub' | 'email'>) {
+export function issueRefreshToken(payload: Pick<AppJwtPayload, 'sub' | 'loginId'>) {
   return signToken('refresh', payload);
 }
 

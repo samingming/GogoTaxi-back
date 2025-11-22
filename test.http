@@ -2,33 +2,38 @@
 @ACCESS = paste_access_token_here
 @REFRESH = paste_refresh_token_here
 
-### 헬스 체크
+### Health Check
 GET {{BASE}}/health
 
-### 회원가입
+### Sign Up
 POST {{BASE}}/api/auth/signup
 Content-Type: application/json
 
 {
-  "email": "alice@example.com",
-  "password": "Passw0rd!",
-  "nickname": "앨리스"
+  "loginId": "yeeunee",
+  "password": "123456789!",
+  "name": "김예은",
+  "gender": "F",
+  "phone": "010-3370-7588",
+  "birthDate": "2004-02-12",
+  "smsConsent": true,
+  "termsConsent": true
 }
 
-### 로그인
+### Login
 POST {{BASE}}/api/auth/login
 Content-Type: application/json
 
 {
-  "email": "alice@example.com",
-  "password": "Passw0rd!"
+  "loginId": "yeeunee",
+  "password": "123456789!"
 }
 
-### 액세스 토큰으로 내 정보 조회
+### Get Profile
 GET {{BASE}}/api/me
 Authorization: Bearer {{ACCESS}}
 
-### 리프레시 토큰으로 재발급
+### Refresh Tokens
 POST {{BASE}}/api/auth/refresh
 Content-Type: application/json
 
@@ -36,7 +41,7 @@ Content-Type: application/json
   "refreshToken": "{{REFRESH}}"
 }
 
-### 리프레시 토큰으로 로그아웃(폐기)
+### Logout
 POST {{BASE}}/api/auth/logout
 Content-Type: application/json
 

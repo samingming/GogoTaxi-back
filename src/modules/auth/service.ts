@@ -1,7 +1,7 @@
 import { createHash } from 'crypto';
 import { prisma } from '../../lib/prisma';
 import bcrypt from 'bcrypt';
-import { SignUpDto, LoginDto, RefreshTokenDto } from './dto';
+import { SignUpDto, LoginDto, RefreshTokenDto, UpdateProfileDto } from './dto';
 import { issueAccessToken, issueRefreshToken, verifyRefreshJwt } from '../../lib/jwt';
 import { ENV } from '../../config/env';
 
@@ -19,15 +19,31 @@ function hashToken(token: string): string {
 function pickSafeUser(user: any) {
   return {
     id: user.id,
-    email: user.email,
-    nickname: user.nickname,
+    loginId: user.loginId,
+    name: user.name,
+    email: user.email ?? null,
+    phone: user.phone ?? null,
+    gender: user.gender ?? null,
+    birthDate: user.birthDate ?? null,
     createdAt: user.createdAt
   };
 }
 
-async function createSession(user: { id: string; email: string; nickname: string; createdAt: Date }, meta: RequestMeta) {
-  const access = issueAccessToken({ sub: user.id, email: user.email });
-  const refresh = issueRefreshToken({ sub: user.id, email: user.email });
+async function createSession(
+  user: {
+    id: string;
+    loginId: string;
+    email: string | null;
+    name: string | null;
+    phone?: string | null;
+    gender?: string | null;
+    birthDate?: Date | null;
+    createdAt: Date;
+  },
+  meta: RequestMeta
+) {
+  const access = issueAccessToken({ sub: user.id, loginId: user.loginId });
+  const refresh = issueRefreshToken({ sub: user.id, loginId: user.loginId });
   const tokenHash = hashToken(refresh.token);
 
   await prisma.refreshToken.create({
@@ -50,25 +66,39 @@ async function createSession(user: { id: string; email: string; nickname: string
 }
 
 export async function signUp(input: SignUpDto, meta: RequestMeta) {
-  const exists = await prisma.user.findUnique({ where: { email: input.email } });
+  const exists = await prisma.user.findUnique({ where: { loginId: input.loginId } });
   if (exists) {
-    throw new Error('EMAIL_TAKEN');
+    throw new Error('LOGIN_ID_TAKEN');
   }
   const passwordHash = await bcrypt.hash(input.password, SALT_ROUNDS);
   const user = await prisma.user.create({
     data: {
-      email: input.email,
       passwordHash,
-      nickname: input.nickname
+      loginId: input.loginId,
+      name: input.name,
+      gender: input.gender,
+      phone: input.phone,
+      birthDate: input.birthDate,
+      smsConsent: input.smsConsent,
+      termsConsent: input.termsConsent
     },
-    select: { id: true, email: true, nickname: true, createdAt: true }
+    select: {
+      id: true,
+      loginId: true,
+      email: true,
+      name: true,
+      phone: true,
+      gender: true,
+      birthDate: true,
+      createdAt: true
+    }
   });
 
   return createSession(user, meta);
 }
 
 export async function login(input: LoginDto, meta: RequestMeta) {
-  const user = await prisma.user.findUnique({ where: { email: input.email } });
+  const user = await prisma.user.findUnique({ where: { loginId: input.loginId } });
   if (!user || !(user as any).passwordHash) throw new Error('INVALID_CREDENTIALS');
 
   const ok = await bcrypt.compare(input.password, (user as any).passwordHash);
@@ -99,7 +129,7 @@ export async function refreshTokens(input: RefreshTokenDto, meta: RequestMeta) {
 
   const user = await prisma.user.findUnique({
     where: { id: payload.sub },
-    select: { id: true, email: true, nickname: true, createdAt: true }
+    select: { id: true, loginId: true, email: true, name: true, phone: true, gender: true, birthDate: true, createdAt: true }
   });
   if (!user) throw new Error('USER_NOT_FOUND');
 
@@ -130,13 +160,43 @@ export async function getProfile(userId: string) {
     where: { id: userId },
     select: {
       id: true,
+      loginId: true,
+      name: true,
       email: true,
-      nickname: true,
-      createdAt: true,
       phone: true,
-      gender: true
+      gender: true,
+      birthDate: true,
+      createdAt: true,
+      smsConsent: true,
+      termsConsent: true
     }
   });
   if (!user) throw new Error('USER_NOT_FOUND');
+  return user;
+}
+
+export async function updateProfile(userId: string, input: UpdateProfileDto) {
+  const data: any = {};
+  if (input.name !== undefined) data.name = input.name;
+  if (input.phone !== undefined) data.phone = input.phone;
+  if (input.gender !== undefined) data.gender = input.gender;
+  if (input.birthDate !== undefined) data.birthDate = input.birthDate;
+
+  const user = await prisma.user.update({
+    where: { id: userId },
+    data,
+    select: {
+      id: true,
+      loginId: true,
+      name: true,
+      email: true,
+      phone: true,
+      gender: true,
+      birthDate: true,
+      smsConsent: true,
+      termsConsent: true,
+      createdAt: true
+    }
+  });
   return user;
 }

@@ -10,8 +10,8 @@ datasource db {
 model User {
   id            String   @id @default(cuid())
   name          String?
-  email         String   @unique
-  nickname      String
+  loginId       String   @unique @map("login_id")
+  email         String?  @unique
   passwordHash  String?  @map("password_hash") // social-only 계정은 null 허용
   gender        Gender?
   phone         String?
