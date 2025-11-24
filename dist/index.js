@@ -14,6 +14,7 @@ const room_routes_1 = __importDefault(require("./routes/room.routes"));
 const logger = (0, pino_1.default)({ transport: { target: 'pino-pretty' } });
 const app = (0, express_1.default)();
 const PORT = Number(env_1.ENV.PORT) || 8080;
+app.set('etag', false);
 app.use((0, helmet_1.default)());
 app.use((0, cors_1.default)({
     origin: [
@@ -22,7 +23,38 @@ app.use((0, cors_1.default)({
     ],
     credentials: true,
 }));
-app.use(express_1.default.json());
+app.use(express_1.default.raw({
+    type: () => true,
+    limit: '1mb'
+}));
+app.use((req, _res, next) => {
+    if (!Buffer.isBuffer(req.body) || req.body.length === 0) {
+        req.body = {};
+        return next();
+    }
+    const rawText = req.body.toString('utf-8').trim();
+    if (!rawText) {
+        req.body = {};
+        return next();
+    }
+    const jsonStart = rawText.indexOf('{');
+    if (jsonStart !== -1) {
+        const candidate = rawText.slice(jsonStart);
+        try {
+            req.body = JSON.parse(candidate);
+            return next();
+        }
+        catch (error) {
+            // fall through
+        }
+    }
+    if (!rawText.includes('\n') && rawText.includes('=')) {
+        req.body = Object.fromEntries(new URLSearchParams(rawText));
+        return next();
+    }
+    req.body = { raw: rawText };
+    next();
+});
 app.use((0, pino_http_1.default)({ logger }));
 app.get('/health', (_req, res) => {
     res.json({ ok: true, env: env_1.ENV.NODE_ENV, time: new Date().toISOString() });

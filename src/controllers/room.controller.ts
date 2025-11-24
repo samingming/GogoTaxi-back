@@ -10,6 +10,27 @@ const decimalField = z.coerce.number().refine(Number.isFinite, {
 
 const isoDateField = z.coerce.date();
 
+const optionalBooleanQueryField = z
+  .preprocess(value => {
+    if (value === undefined || value === null || value === '') {
+      return undefined;
+    }
+    if (typeof value === 'boolean') {
+      return value;
+    }
+    if (typeof value === 'string') {
+      const normalized = value.trim().toLowerCase();
+      if (['true', '1', 'yes', 'y', 'on'].includes(normalized)) return true;
+      if (['false', '0', 'no', 'n', 'off'].includes(normalized)) return false;
+    }
+    if (typeof value === 'number') {
+      if (value === 1) return true;
+      if (value === 0) return false;
+    }
+    return value;
+  }, z.boolean())
+  .optional();
+
 // 방 생성 요청 스키마
 const createRoomSchema = z.object({
   title: z.string().min(1).max(50),
@@ -33,8 +54,8 @@ const listRoomsSchema = z
     priority: z.nativeEnum(RoomPriority).optional(),
     creatorId: z.string().cuid().optional(),
     departureLabel: z.string().min(1).optional(),
-    hasSeat: z.coerce.boolean().optional(),
-    mine: z.coerce.boolean().optional(),
+    hasSeat: optionalBooleanQueryField,
+    mine: optionalBooleanQueryField,
     sortBy: z
       .enum(['default', 'departureDistance', 'arrivalDistance', 'time'])
       .optional(),
@@ -67,8 +88,17 @@ const updateRoomSchema = createRoomSchema.partial().refine(obj => Object.keys(ob
 });
 
 // 참여 요청 스키마
+const optionalSeatNumberField = z
+  .preprocess(value => {
+    if (value === undefined || value === null || value === '') {
+      return undefined;
+    }
+    return value;
+  }, z.coerce.number().int().min(1))
+  .optional();
+
 const joinRoomSchema = z.object({
-  seatNumber: z.coerce.number().int().min(1)
+  seatNumber: optionalSeatNumberField
 });
 
 // 매칭 API 쿼리 스키마
@@ -209,7 +239,6 @@ async function refreshRoomStatus(roomId: string) {
     }
   });
   if (!snapshot) return;
-  if (snapshot.status === RoomStatus.closed) return;
 
   const nextStatus =
     snapshot.participants.length >= snapshot.capacity ? RoomStatus.full : RoomStatus.open;
@@ -323,7 +352,7 @@ export async function listRooms(req: Request, res: Response) {
       : {})
   };
 
-  const effectiveStatus = status ?? (hasSeat ? RoomStatus.open : undefined);
+  const effectiveStatus = status ?? (!includeMine && hasSeat ? RoomStatus.open : undefined);
   if (effectiveStatus) {
     where.status = effectiveStatus;
   }
@@ -376,6 +405,35 @@ export async function listRooms(req: Request, res: Response) {
   } catch (error) {
     console.error('listRooms error', error);
     return res.status(500).json({ message: 'Failed to load rooms' });
+  }
+}
+
+export async function listMyRooms(req: Request, res: Response) {
+  const userId = (req as any).user?.sub;
+  if (!userId) {
+    return res.status(401).json({ message: 'Unauthorized' });
+  }
+
+  try {
+    const rooms = await prisma.room.findMany({
+      where: {
+        OR: [
+          { creatorId: userId },
+          {
+            participants: {
+              some: { userId }
+            }
+          }
+        ]
+      },
+      include: defaultRoomInclude,
+      orderBy: { departureTime: 'asc' }
+    });
+
+    return res.json({ rooms: rooms.map(room => serializeRoom(room, userId)) });
+  } catch (error) {
+    console.error('listMyRooms error', error);
+    return res.status(500).json({ message: 'Failed to load my rooms' });
   }
 }
 
@@ -553,45 +611,6 @@ export async function updateRoom(req: Request, res: Response) {
  * 방 닫기 (open/full → closed)
  * - host만 가능
  */
-export async function closeRoom(req: Request, res: Response) {
-  const param = roomParamSchema.safeParse(req.params);
-  if (!param.success) {
-    return respondValidationError(res, param.error);
-  }
-  const userId = (req as any).user?.sub;
-  if (!userId) {
-    return res.status(401).json({ message: 'Unauthorized' });
-  }
-
-  try {
-    const room = await prisma.room.findUnique({
-      where: { id: param.data.id }
-    });
-    if (!room) {
-      return res.status(404).json({ message: 'Room not found' });
-    }
-    if (room.creatorId !== userId) {
-      return res.status(403).json({ message: 'Only host can close room' });
-    }
-    if (room.status === RoomStatus.closed) {
-      return res.status(400).json({ message: 'Room already closed' });
-    }
-
-    const updated = await prisma.room.update({
-      where: { id: room.id },
-      data: { status: RoomStatus.closed },
-      include: defaultRoomInclude
-    });
-    return res.json({ room: serializeRoom(updated, userId) });
-  } catch (error) {
-    console.error('closeRoom error', error);
-    return res.status(500).json({ message: 'Failed to close room' });
-  }
-}
-
-/**
- * 방 참여 (좌석 선택)
- */
 export async function joinRoom(req: Request, res: Response) {
   const param = roomParamSchema.safeParse(req.params);
   if (!param.success) {
@@ -607,7 +626,7 @@ export async function joinRoom(req: Request, res: Response) {
   }
 
   try {
-    const room = await prisma.room.findUnique({
+    let room = await prisma.room.findUnique({
       where: { id: param.data.id },
       include: {
         participants: true
@@ -617,13 +636,47 @@ export async function joinRoom(req: Request, res: Response) {
       return res.status(404).json({ message: 'Room not found' });
     }
     if (room.status !== RoomStatus.open) {
+      await refreshRoomStatus(room.id);
+      room = await prisma.room.findUnique({
+        where: { id: param.data.id },
+        include: {
+          participants: true
+        }
+      });
+      if (!room) {
+        return res.status(404).json({ message: 'Room not found' });
+      }
+    }
+    if (room.status !== RoomStatus.open) {
       return res.status(400).json({ message: 'Room is not open for joining' });
     }
     if (room.participants.some(p => p.userId === userId)) {
       return res.status(400).json({ message: 'Already joined this room' });
     }
 
-    const seatNumber = body.data.seatNumber;
+    const isFull = room.participants.length >= room.capacity;
+    if (isFull) {
+      return res.status(400).json({ message: 'Room is full' });
+    }
+
+    let seatNumber = body.data.seatNumber ?? null;
+    if (seatNumber === null) {
+      const takenSeats = new Set(
+        room.participants
+          .map(p => p.seatNumber)
+          .filter((value): value is number => typeof value === 'number')
+      );
+      for (let idx = 1; idx <= room.capacity; idx += 1) {
+        if (!takenSeats.has(idx)) {
+          seatNumber = idx;
+          break;
+        }
+      }
+      if (seatNumber === null) {
+        return res.status(400).json({ message: 'No seat available' });
+      }
+    }
+
     if (seatNumber > room.capacity) {
       return res.status(400).json({ message: 'Seat number exceeds room capacity' });
     }

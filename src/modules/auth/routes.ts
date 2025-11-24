@@ -2,12 +2,30 @@ import { Router } from 'express';
 import { SignUpDto, LoginDto } from './dto';
 import { signUp, login } from './service';
 
+function extractPayload(reqBody: any, fallback: Record<string, any> = {}) {
+  if (reqBody && typeof reqBody === 'object' && !Buffer.isBuffer(reqBody)) {
+    return reqBody;
+  }
+  if (typeof reqBody === 'string') {
+    const trimmed = reqBody.trim();
+    if (trimmed) {
+      try {
+        return JSON.parse(trimmed);
+      } catch (_error) {
+        return fallback;
+      }
+    }
+  }
+  return fallback;
+}
+
 export const authRouter = Router();
 
 // 회원가입
 authRouter.post('/signup', async (req, res) => {
   try {
-    const input = SignUpDto.parse(req.body);
+    const payload = extractPayload(req.body, req.query as Record<string, any>);
+    const input = SignUpDto.parse(payload);
     const result = await signUp(input);
     res.status(201).json(result);
   } catch (e: any) {
@@ -21,7 +39,8 @@ authRouter.post('/signup', async (req, res) => {
 // 로그인
 authRouter.post('/login', async (req, res) => {
   try {
-    const input = LoginDto.parse(req.body);
+    const payload = extractPayload(req.body, req.query as Record<string, any>);
+    const input = LoginDto.parse(payload);
     const result = await login(input);
     res.json(result);
   } catch (e: any) {
