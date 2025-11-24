@@ -8,11 +8,11 @@ datasource db {
 }
 
 model User {
-  id            String    @id @default(cuid())
+  id            String   @id @default(cuid())
   name          String?
-  email         String?   @unique
-  nickname      String?
-  passwordHash  String?   @map("password_hash") // 소셜 로그인 시 null
+  loginId       String   @unique @map("login_id")
+  email         String?  @unique
+  passwordHash  String?  @map("password_hash") // social-only 계정은 null 허용
   gender        Gender?
   phone         String?
   birthDate     DateTime? @map("birth_date")
@@ -22,12 +22,14 @@ model User {
   createdAt     DateTime  @default(now()) @map("created_at")
   updatedAt     DateTime  @updatedAt
 
-  roomsCreated     Room[]              @relation("RoomCreator")
+  roomsCreated     Room[]             @relation("RoomCreator")
   roomParticipants RoomParticipant[]
-  reviews          Review[]            @relation("UserReviews")
-  reports          Report[]            @relation("UserReports")
-  walletTxs        WalletTransaction[]
-  settlements      RoomSettlement[]
+  reviews          Review[]           @relation("UserReviews")
+  reports          Report[]           @relation("UserReports")
+  refreshTokens    RefreshToken[]
+  socialAccounts   SocialAccount[]
+  walletTransactions WalletTransaction[]
+  settlements        RoomSettlement[]
 }
 
 model Room {
@@ -71,37 +73,40 @@ model RoomParticipant {
   user User @relation(fields: [userId], references: [id])
 
   @@unique([roomId, userId])
-  @@unique([roomId, seatNumber])
 }
 
 model WalletTransaction {
-  id        String         @id @default(cuid())
-  userId    String         @map("user_id")
-  user      User           @relation(fields: [userId], references: [id])
-  roomId    String?        @map("room_id")
-  room      Room?          @relation(fields: [roomId], references: [id])
-  kind      WalletTxKind
-  amount    Int
-  currency  String         @default("KRW")
-  status    WalletTxStatus @default(success)
-  metadata  Json?
-  createdAt DateTime       @default(now()) @map("created_at")
+  id             String         @id @default(cuid())
+  userId         String         @map("user_id")
+  user           User           @relation(fields: [userId], references: [id])
+  roomId         String?        @map("room_id")
+  room           Room?          @relation(fields: [roomId], references: [id])
+  idempotencyKey String?        @unique @map("idempotency_key")
+  kind           WalletTxKind
+  amount         Int
+  currency       String         @default("KRW")
+  status         WalletTxStatus @default(success)
+  metadata       Json?
+  createdAt      DateTime       @default(now()) @map("created_at")
 }
 
 model RoomSettlement {
-  id           String         @id @default(cuid())
-  roomId       String         @map("room_id")
-  room         Room           @relation(fields: [roomId], references: [id])
-  userId       String         @map("user_id")
-  user         User           @relation(fields: [userId], references: [id])
+  id           String                 @id @default(cuid())
+  roomId       String                 @map("room_id")
+  room         Room                   @relation(fields: [roomId], references: [id])
+  userId       String                 @map("user_id")
+  user         User                   @relation(fields: [userId], references: [id])
   role         SettlementRole
-  deposit      Int            @default(0)
-  extraCollect Int            @default(0) @map("extra_collect")
-  refund       Int            @default(0)
-  netAmount    Int            @default(0) @map("net_amount") // +징수, -환급
-  noShow       Boolean        @default(false) @map("no_show")
+  deposit      Int                    @default(0)
+  extraCollect Int                    @default(0) @map("extra_collect")
+  refund       Int                    @default(0)
+  netAmount    Int                    @default(0) @map("net_amount") // +징수, -환급
+  noShow       Boolean                @default(false) @map("no_show")
   note         String?
-  createdAt    DateTime       @default(now()) @map("created_at")
+  status       SettlementRecordStatus @default(pending)
+  createdAt    DateTime               @default(now()) @map("created_at")
+
+  @@unique([roomId, userId])
 }
 
 model Review {
@@ -147,6 +152,35 @@ model Notice {
   createdAt DateTime   @default(now()) @map("created_at")
 }
 
+model SocialAccount {
+  id             String       @id @default(cuid())
+  provider       AuthProvider
+  providerUserId String       @map("provider_user_id")
+  userId         String       @map("user_id")
+  accessToken    String?      @map("access_token")
+  refreshToken   String?      @map("refresh_token")
+  profile        Json?
+  createdAt      DateTime     @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([provider, providerUserId])
+  @@index([userId])
+}
+
+model RefreshToken {
+  id            String    @id @default(cuid())
+  userId        String    @map("user_id")
+  user          User      @relation(fields: [userId], references: [id])
+  tokenHash     String    @unique @map("token_hash")
+  expiresAt     DateTime  @map("expires_at")
+  revokedAt     DateTime? @map("revoked_at")
+  revokedReason String?   @map("revoked_reason")
+  userAgent     String?   @map("user_agent")
+  ip            String?
+  createdAt     DateTime  @default(now()) @map("created_at")
+}
+
 enum Gender {
   M
   F
@@ -157,10 +191,15 @@ enum RoomPriority {
   seats
 }
 
+// 두 버전의 상태값을 모두 포함해서 합침
 enum RoomStatus {
   open
   full
   closed
+  recruiting
+  dispatching
+  success
+  failed
 }
 
 enum SettlementStatus {
@@ -197,4 +236,16 @@ enum NoticeType {
   update
   info
   maintenance
+}
+
+enum SettlementRecordStatus {
+  pending
+  settling
+  settled
+  failed
+}
+
+enum AuthProvider {
+  kakao
+  google
 }
