@@ -42,13 +42,29 @@ router.post('/rooms', auth_1.requireAuth, roomController.createRoom);
 // 방 검색
 router.get('/rooms', auth_1.requireAuth, roomController.listRooms);
 router.get('/rooms/match', auth_1.requireAuth, roomController.matchRooms);
+router.get('/rooms/mine', auth_1.requireAuth, roomController.listMyRooms);
 // 방 상세
 router.get('/rooms/:id', auth_1.requireAuth, roomController.getRoomDetail);
 // 방 수정 (방장만)
 router.patch('/rooms/:id', auth_1.requireAuth, roomController.updateRoom);
 // 방 닫기 (방장만)
-router.post('/rooms/:id/close', auth_1.requireAuth, roomController.closeRoom);
 // 방 참여 / 나가기
 router.post('/rooms/:id/join', auth_1.requireAuth, roomController.joinRoom);
 router.post('/rooms/:id/leave', auth_1.requireAuth, roomController.leaveRoom);
+router.post('/rooms/join', auth_1.requireAuth, (req, res) => {
+    const roomId = req.body?.roomId;
+    if (!roomId || typeof roomId !== 'string') {
+        return res.status(400).json({ message: 'roomId is required' });
+    }
+    req.params = { id: roomId };
+    return roomController.joinRoom(req, res);
+});
+router.post('/rooms/leave', auth_1.requireAuth, (req, res) => {
+    const roomId = req.body?.roomId;
+    if (!roomId || typeof roomId !== 'string') {
+        return res.status(400).json({ message: 'roomId is required' });
+    }
+    req.params = { id: roomId };
+    return roomController.leaveRoom(req, res);
+});
 exports.default = router;
