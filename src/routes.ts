@@ -7,7 +7,6 @@ import { paymentsRouter } from './modules/payments/routes';
 import { notificationsRouter } from './modules/notifications/routes';
 import { reviewRouter } from './modules/review/routes';
 import { reportRouter } from './modules/report/routes';
-
 export const router = Router();
 
 // 상태 확인

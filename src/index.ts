@@ -4,7 +4,9 @@ import helmet from 'helmet';
 import pino from 'pino';
 import pinoHttp from 'pino-http';
 import { ENV } from './config/env';
-import { router } from './routes';
+import { router } from './routes.js';
+import roomRoutes from "./routes/room.routes";
+
 
 const logger = pino({ transport: { target: 'pino-pretty' } });
 const app = express();
@@ -33,3 +35,5 @@ app.use('/api', router);
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`Server listening on ${PORT}`);
 });
+
+app.use("/api", roomRoutes);

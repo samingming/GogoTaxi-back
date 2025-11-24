@@ -22,12 +22,14 @@ export async function signUp(input: SignUpDto) {
     select: { id: true, email: true, nickname: true, createdAt: true }
   });
   const token = signJwt({ sub: user.id, email: user.email! });
+  const token = signJwt({ sub: user.id, email: user.email! });
   return { user, token };
 }
 
 export async function login(input: LoginDto) {
   const user = await prisma.user.findUnique({ where: { email: input.email } });
   if (!user) throw new Error('INVALID_CREDENTIALS');
+  if (!user.passwordHash) throw new Error('INVALID_CREDENTIALS');
 
   if (!user.passwordHash) throw new Error('INVALID_CREDENTIALS');
 

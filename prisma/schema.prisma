@@ -8,11 +8,11 @@ datasource db {
 }
 
 model User {
-  id            String   @id @default(cuid())
-  name          String   @default("")
-  email         String?  @unique
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
   nickname      String?
-  passwordHash  String?  @map("password_hash") // 소셜 로그인 시 null
+  passwordHash  String?   @map("password_hash") // 소셜 로그인 시 null
   gender        Gender?
   phone         String?
   birthDate     DateTime? @map("birth_date")
@@ -22,10 +22,10 @@ model User {
   createdAt     DateTime  @default(now()) @map("created_at")
   updatedAt     DateTime  @updatedAt
 
-  roomsCreated     Room[]             @relation("RoomCreator")
+  roomsCreated     Room[]              @relation("RoomCreator")
   roomParticipants RoomParticipant[]
-  reviews          Review[]           @relation("UserReviews")
-  reports          Report[]           @relation("UserReports")
+  reviews          Review[]            @relation("UserReviews")
+  reports          Report[]            @relation("UserReports")
   walletTxs        WalletTransaction[]
   settlements      RoomSettlement[]
 }
@@ -36,15 +36,15 @@ model Room {
   creatorId        String           @map("creator_id")
   creator          User             @relation("RoomCreator", fields: [creatorId], references: [id])
   departureLabel   String           @map("departure_label")
-  departureLat     Decimal          @db.Decimal(10, 6) @map("departure_lat")
-  departureLng     Decimal          @db.Decimal(10, 6) @map("departure_lng")
+  departureLat     Decimal          @map("departure_lat") @db.Decimal(10, 6)
+  departureLng     Decimal          @map("departure_lng") @db.Decimal(10, 6)
   arrivalLabel     String           @map("arrival_label")
-  arrivalLat       Decimal          @db.Decimal(10, 6) @map("arrival_lat")
-  arrivalLng       Decimal          @db.Decimal(10, 6) @map("arrival_lng")
+  arrivalLat       Decimal          @map("arrival_lat") @db.Decimal(10, 6)
+  arrivalLng       Decimal          @map("arrival_lng") @db.Decimal(10, 6)
   departureTime    DateTime         @map("departure_time")
   capacity         Int
   priority         RoomPriority
-  status           RoomStatus       @default(recruiting)
+  status           RoomStatus       @default(open)
   estimatedFare    Int?             @map("estimated_fare")
   actualFare       Int?             @map("actual_fare")
   estimatedEta     DateTime?        @map("estimated_eta")
@@ -52,12 +52,12 @@ model Room {
   settlementStatus SettlementStatus @default(pending) @map("settlement_status")
   noShowUserIds    String[]         @default([]) @map("no_show_user_ids")
 
-  participants   RoomParticipant[]
-  dispatchedTaxi DispatchedTaxi?
-  reviews        Review[]
-  reports        Report[]
-  settlements    RoomSettlement[]
-  walletTxs      WalletTransaction[]
+  participants       RoomParticipant[]
+  dispatchedTaxi     DispatchedTaxi?
+  reviews            Review[]
+  reports            Report[]
+  settlements        RoomSettlement[]
+  walletTransactions WalletTransaction[]
 }
 
 model RoomParticipant {
