@@ -18,6 +18,7 @@ model User {
   birthDate     DateTime? @map("birth_date")
   smsConsent    Boolean   @default(false) @map("sms_consent")
   termsConsent  Boolean   @default(false) @map("terms_consent")
+  walletBalance Int       @default(0) @map("wallet_balance")
   createdAt     DateTime  @default(now()) @map("created_at")
   updatedAt     DateTime  @updatedAt
 
@@ -27,6 +28,8 @@ model User {
   reports          Report[]           @relation("UserReports")
   refreshTokens    RefreshToken[]
   socialAccounts   SocialAccount[]
+  walletTransactions WalletTransaction[]
+  settlements        RoomSettlement[]
 }
 
 model Room {
@@ -165,6 +168,19 @@ model SocialAccount {
   @@index([userId])
 }
 
+model RefreshToken {
+  id            String    @id @default(cuid())
+  userId        String    @map("user_id")
+  user          User      @relation(fields: [userId], references: [id])
+  tokenHash     String    @unique @map("token_hash")
+  expiresAt     DateTime  @map("expires_at")
+  revokedAt     DateTime? @map("revoked_at")
+  revokedReason String?   @map("revoked_reason")
+  userAgent     String?   @map("user_agent")
+  ip            String?
+  createdAt     DateTime  @default(now()) @map("created_at")
+}
+
 enum Gender {
   M
   F
@@ -227,4 +243,9 @@ enum SettlementRecordStatus {
   settling
   settled
   failed
+}
+
+enum AuthProvider {
+  kakao
+  google
 }

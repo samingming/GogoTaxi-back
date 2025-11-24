@@ -1,19 +1,4 @@
 import { Router } from 'express';
-<<<<<<< HEAD
-import { SignUpDto, LoginDto } from './dto';
-import { signUp, login } from './service';
-
-export const authRouter = Router();
-
-// 회원가입
-authRouter.post('/signup', async (req, res) => {
-  try {
-    const input = SignUpDto.parse(req.body);
-    const result = await signUp(input);
-    res.status(201).json(result);
-  } catch (e: any) {
-    if (e?.message === 'EMAIL_TAKEN') return res.status(409).json({ message: 'Email already in use' });
-=======
 import { SignUpDto, LoginDto, RefreshTokenDto, SocialLoginDto, SocialConsentDto } from './dto';
 import { signUp, login, refreshTokens, logout, socialLogin, completeSocialConsent } from './service';
 import { ENV } from '../../config/env';
@@ -32,23 +17,12 @@ authRouter.post('/signup', async (req, res) => {
     res.status(201).json(result);
   } catch (e: any) {
     if (e?.message === 'LOGIN_ID_TAKEN') return res.status(409).json({ message: 'Login ID already in use' });
->>>>>>> upstream/main
     if (e?.name === 'ZodError') return res.status(400).json({ message: 'Validation failed', issues: e.issues });
     console.error(e);
     res.status(500).json({ message: 'Internal error' });
   }
 });
 
-<<<<<<< HEAD
-// 로그인
-authRouter.post('/login', async (req, res) => {
-  try {
-    const input = LoginDto.parse(req.body);
-    const result = await login(input);
-    res.json(result);
-  } catch (e: any) {
-    if (e?.message === 'INVALID_CREDENTIALS') return res.status(401).json({ message: 'Invalid email or password' });
-=======
 authRouter.post('/login', async (req, res) => {
   try {
     const input = LoginDto.parse(req.body);
@@ -56,14 +30,10 @@ authRouter.post('/login', async (req, res) => {
     res.json(result);
   } catch (e: any) {
     if (e?.message === 'INVALID_CREDENTIALS') return res.status(401).json({ message: 'Invalid ID or password' });
->>>>>>> upstream/main
     if (e?.name === 'ZodError') return res.status(400).json({ message: 'Validation failed', issues: e.issues });
     console.error(e);
     res.status(500).json({ message: 'Internal error' });
   }
-<<<<<<< HEAD
-});
-=======
 });
 
 authRouter.post('/refresh', async (req, res) => {
@@ -130,7 +100,6 @@ authRouter.get('/social/kakao/callback', async (req, res) => {
       return res.redirect(url.toString());
     }
 
-    // Already consented: redirect to front with tokens
     const successTarget = ENV.SOCIAL_LOGIN_SUCCESS_REDIRECT_URI || 'http://localhost:5173/home';
     const url = new URL(successTarget);
     if (state) url.searchParams.set('redirect', state);
@@ -196,4 +165,3 @@ authRouter.post('/social/consent', async (req, res) => {
     res.status(500).json({ message: 'Internal error' });
   }
 });
->>>>>>> upstream/main

@@ -96,5 +96,3 @@ router.patch('/me/password', requireAuth, async (req: any, res) => {
     res.status(500).json({ message: 'Internal error' });
   }
 });
-
-module.exports = { router };

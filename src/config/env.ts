@@ -3,9 +3,6 @@ import 'dotenv/config';
 export const ENV = {
   NODE_ENV: process.env.NODE_ENV ?? 'development',
   PORT: Number(process.env.PORT ?? 8080),
-<<<<<<< HEAD
-  DATABASE_URL: process.env.DATABASE_URL ?? ''
-=======
   DATABASE_URL: process.env.DATABASE_URL ?? '',
   JWT_SECRET: process.env.JWT_SECRET ?? 'dev',
   JWT_REFRESH_SECRET: process.env.JWT_REFRESH_SECRET ?? process.env.JWT_SECRET ?? 'dev',
@@ -22,13 +19,8 @@ export const ENV = {
   SOCIAL_LOGIN_SUCCESS_REDIRECT_URI: process.env.SOCIAL_LOGIN_SUCCESS_REDIRECT_URI ?? '',
   GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID ?? '',
   GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET ?? ''
->>>>>>> upstream/main
 };
 
 if (!ENV.DATABASE_URL) {
-  console.warn('⚠️  DATABASE_URL is empty. Set it in .env');
-<<<<<<< HEAD
+  console.warn('Warning: DATABASE_URL is empty. Set it in .env');
 }
-=======
-}
->>>>>>> upstream/main
