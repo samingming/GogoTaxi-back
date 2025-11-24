@@ -1,11 +1,6 @@
 import { z } from 'zod';
 
 export const SignUpDto = z.object({
-<<<<<<< HEAD
-  email: z.string().email(),
-  password: z.string().min(8).max(64),
-  nickname: z.string().min(1).max(30)
-=======
   loginId: z.string().min(4).max(30),
   password: z.string().min(8).max(64),
   name: z.string().min(1).max(50),
@@ -14,17 +9,10 @@ export const SignUpDto = z.object({
   birthDate: z.coerce.date(),
   smsConsent: z.boolean(),
   termsConsent: z.boolean()
->>>>>>> upstream/main
 });
 export type SignUpDto = z.infer<typeof SignUpDto>;
 
 export const LoginDto = z.object({
-<<<<<<< HEAD
-  email: z.string().email(),
-  password: z.string().min(8).max(64)
-});
-export type LoginDto = z.infer<typeof LoginDto>;
-=======
   loginId: z.string().min(4).max(30),
   password: z.string().min(8).max(64)
 });
@@ -84,4 +72,3 @@ export const SocialConsentDto = z.object({
   birthDate: z.coerce.date().optional()
 });
 export type SocialConsentDto = z.infer<typeof SocialConsentDto>;
->>>>>>> upstream/main
