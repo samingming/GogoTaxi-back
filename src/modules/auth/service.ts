@@ -22,7 +22,6 @@ export async function signUp(input: SignUpDto) {
     select: { id: true, email: true, nickname: true, createdAt: true }
   });
   const token = signJwt({ sub: user.id, email: user.email! });
-  const token = signJwt({ sub: user.id, email: user.email! });
   return { user, token };
 }
 
