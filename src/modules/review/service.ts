@@ -32,7 +32,7 @@ export async function listRoomReviews(roomId: string) {
   return prisma.review.findMany({
     where: { roomId },
     include: {
-      reviewer: { select: { id: true, nickname: true } }
+      reviewer: { select: { id: true, name: true } }
     },
     orderBy: { createdAt: 'desc' }
   });

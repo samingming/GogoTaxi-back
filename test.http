@@ -1,23 +1,23 @@
 @BASE = http://localhost:8080
 
-@JWT = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjbWljd3k4eHUwMDAwMHlhY3hzMHllbDZqIiwiZW1haWwiOiJvYWltQGV4YW1wbGUuY29tIiwiaWF0IjoxNzYzOTc2MzIyLCJleHAiOjE3NjQ1ODExMjJ9.qaaKTK7zk7k1yLZqGDuBZKeAuepR69s1XfO_vqT05xY
+@JWT = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjbWlkNGVnYjIwMDA1MHkwd2FkNTh6Z29yIiwibG9naW5JZCI6Im1pbmciLCJ0eXBlIjoiYWNjZXNzIiwianRpIjoiYzUwYjBiNGMtMWE2Yy00YzY2LWJkMjMtN2M0OGUxYzkzYjRmIiwiaWF0IjoxNzYzOTk4MDk2LCJleHAiOjE3NjM5OTg5OTZ9.wHTA2gFavlAjIO2FGsGT2boql5njUZSobme7QwqaO0A
 
 ### 회원가입
 
 POST http://localhost:8080/api/auth/signup
 Content-Type: application/json
 
-
-
 {
-
-  "email": "oaim@example.com",
-
-  "password": "oaim0807!",
-
-  "nickname": "사임"
-
+  "loginId": "saim",
+  "password": "123456789!",
+  "name": "사임",
+  "gender": "F",
+  "phone": "010-3370-7588",
+  "birthDate": "2004-02-12",
+  "smsConsent": true,
+  "termsConsent": true
 }
+
 
 
 
@@ -27,12 +27,10 @@ POST http://localhost:8080/api/auth/login
 Content-Type: application/json
 
 {
-
-  "email": "oaim@example.com",
-
-  "password": "oaim0807!"
-
+  "loginId": "saim",
+  "password": "123456789!"
 }
+
 
 
 
@@ -178,9 +176,8 @@ Content-Type: application/json
 ### - JWT는 위에서 로그인 해서 직접 복사해 넣기 (@JWT 갱신 필수!)
 
 POST {{BASE}}/api/rooms
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjbWljdWZ6YmQwMDBwbmdmaGJnazBhNjNrIiwiZW1haWwiOiJhaG5uZXVAZXhhbXBsZS5jb20iLCJpYXQiOjE3NjM5NzA0MjUsImV4cCI6MTc2NDU3NTIyNX0.JPjUyEh6zgw0ue2A1a1tSmWGlBVOHNeg8hJ4GhOViEU
+Authorization: Bearer {{JWT}}
 Content-Type: application/json
-
 
 
 {
@@ -383,9 +380,9 @@ POST {{BASE}}/api/auth/signup
 Content-Type: application/json
 
 {
-  "loginId": "yeeunee",
+  "loginId": "ming",
   "password": "123456789!",
-  "name": "김예은",
+  "name": "사임",
   "gender": "F",
   "phone": "010-3370-7588",
   "birthDate": "2004-02-12",
@@ -398,7 +395,7 @@ POST {{BASE}}/api/auth/login
 Content-Type: application/json
 
 {
-  "loginId": "yeeunee",
+  "loginId": "ming",
   "password": "123456789!"
 }
 

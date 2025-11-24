@@ -11,6 +11,7 @@ import { UpdateProfileDto, ChangePasswordDto } from './modules/auth/dto';
 import { walletRouter } from './modules/wallet/routes';
 import { settlementRouter } from './modules/settlement/routes';
 import { paymentsRouter } from './modules/payments/routes';
+import roomRouter from './routes/room.routes';
 
 // 알림
 import { notificationsRouter } from './modules/notifications/routes';
@@ -37,6 +38,7 @@ router.use('/auth', authRouter);
 router.use('/wallet', walletRouter);
 router.use('/payments', paymentsRouter);
 router.use('/settlements', settlementRouter);
+router.use(roomRouter);
 
 /* ============================================
    알림
