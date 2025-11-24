@@ -1,18 +1,18 @@
 @BASE = http://localhost:8080
 # 로그인 후 받은 JWT 토큰으로 교체하세요
-@TOKEN = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjbWk4aXVoZjcwMDAwbmdrajd5dWM2M3o5IiwiZW1haWwiOiJ0ZXN0ZXJAZXhhbXBsZS5jb20iLCJpYXQiOjE3NjM3MDkwNzYsImV4cCI6MTc2NDMxMzg3Nn0.oQuczq4fZpel_bynp89LyU3XGY63eAp-vwpJsKamtdw
+@TOKEN = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjbWk1bTFoOHMwMDAwbmd4Znh5b3pza2hpIiwiZW1haWwiOiJhaG5uZXVAbmF2ZXIuY29tIiwiaWF0IjoxNzYzNzE3NTgwLCJleHAiOjE3NjQzMjIzODB9.kLnovJJUTKhWHpbqyysdby2IPxnG5qPR0kZqEQBYfH0
 # Prisma Studio 등에서 확인한 Room ID 로 교체하세요
-@ROOM_ID = <room_cuid_here>
+@ROOM_ID = cmi8iuhf70000ngkj7yuc63z9
 # 결제 세션 테스트 시 응답으로 받은 ID로 교체하세요
-@PAYMENT_SESSION_ID = <session_uuid_here>
+@PAYMENT_SESSION_ID = 8b5a8c9f-131c-46e6-8008-a329470ea8c2
 
 ### 회원가입 (로컬)
 POST {{BASE}}/api/auth/signup
 Content-Type: application/json
 
 {
-  "email": "tester@example.com",
-  "password": "Passw0rd!",
+  "email": "ahnneu@naver.com",
+  "password": "tkddk128!!",
   "nickname": "테스터"
 }
 
@@ -21,8 +21,8 @@ POST {{BASE}}/api/auth/login
 Content-Type: application/json
 
 {
-  "email": "tester@example.com",
-  "password": "Passw0rd!"
+  "email": "ahnneu@naver.com",
+  "password": "tkddk128!!"
 }
 
 ### 내 정보 확인
@@ -39,7 +39,7 @@ Content-Type: application/json
 Authorization: Bearer {{TOKEN}}
 
 {
-  "amount": 50000
+  "amount": 20000
 }
 
 ### 결제 세션 생성 (지갑 충전용)
@@ -152,4 +152,14 @@ Content-Type: application/json
   "capacity": 4,
   "priority": "time",
   "estimatedFare": 12000
+}
+
+### 알림 뜨게 하기
+POST http://localhost:8080/api/notifications/test
+Authorization: Bearer {{TOKEN}}
+Content-Type: application/json
+
+{
+  "title": "배차 완료",
+  "body": "예상 금액으로 결제됐어요."
 }
