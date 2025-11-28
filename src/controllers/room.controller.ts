@@ -44,7 +44,8 @@ const createRoomSchema = z.object({
   capacity: z.coerce.number().int().min(1).max(6),
   priority: z.nativeEnum(RoomPriority).optional(),
   estimatedFare: z.coerce.number().int().positive().optional(),
-  estimatedEta: isoDateField.optional()
+  estimatedEta: isoDateField.optional(),
+  hostSeatNumber: z.coerce.number().int().min(1).max(6).optional()
 });
 
 // 방 목록 조회 쿼리 스키마
@@ -134,7 +135,8 @@ const defaultRoomInclude = {
         select: {
           id: true,
           email: true,
-          name: true
+          name: true,
+          gender: true
         }
       }
     }
@@ -143,7 +145,8 @@ const defaultRoomInclude = {
     select: {
       id: true,
       email: true,
-      name: true
+      name: true,
+      gender: true
     }
   }
 } satisfies Prisma.RoomInclude;
@@ -275,11 +278,13 @@ export async function createRoom(req: Request, res: Response) {
     return respondValidationError(res, parsed.error);
   }
 
-  const payload = parsed.data;
-  const userId = (req as any).user?.sub;
-  if (!userId) {
-    return res.status(401).json({ message: 'Unauthorized' });
-  }
+ const payload = parsed.data;
+const hostSeatNumber = payload.hostSeatNumber ?? 1;
+const userId = (req as any).user?.sub;
+
+if (hostSeatNumber !== null && hostSeatNumber > payload.capacity) {
+  return res.status(400).json({ message: 'Host seat exceeds room capacity' });
+}
 
   try {
     const room = await prisma.room.create({
@@ -300,7 +305,7 @@ export async function createRoom(req: Request, res: Response) {
         participants: {
           create: {
             userId,
-            seatNumber: 1
+            seatNumber: hostSeatNumber
           }
         }
       },

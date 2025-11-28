@@ -15,9 +15,13 @@ exports.ENV = {
     KAKAO_REST_API_KEY: process.env.KAKAO_REST_API_KEY ?? '',
     KAKAO_ADMIN_KEY: process.env.KAKAO_ADMIN_KEY ?? '',
     KAKAO_JS_KEY: process.env.KAKAO_JS_KEY ?? '',
+    KAKAO_REDIRECT_URI: process.env.KAKAO_REDIRECT_URI ?? '',
+    KAKAO_CLIENT_SECRET: process.env.KAKAO_CLIENT_SECRET ?? '',
+    SOCIAL_CONSENT_REDIRECT_URI: process.env.SOCIAL_CONSENT_REDIRECT_URI ?? '',
+    SOCIAL_LOGIN_SUCCESS_REDIRECT_URI: process.env.SOCIAL_LOGIN_SUCCESS_REDIRECT_URI ?? '',
     GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID ?? '',
     GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET ?? ''
 };
 if (!exports.ENV.DATABASE_URL) {
-    console.warn('⚠️  DATABASE_URL is empty. Set it in .env');
+    console.warn('Warning: DATABASE_URL is empty. Set it in .env');
 }

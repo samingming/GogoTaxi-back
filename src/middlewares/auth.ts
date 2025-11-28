@@ -13,10 +13,13 @@ declare global {
 
 export function requireAuth(req: Request, res: Response, next: NextFunction) {
   const header = req.headers.authorization; // "Bearer <token>"
-  if (!header || !header.startsWith('Bearer ')) {
+  if (!header) {
     return res.status(401).json({ message: 'Unauthorized: missing Bearer token' });
   }
-  const token = header.slice('Bearer '.length);
+  const [scheme, token] = header.split(' ');
+  if (!token || scheme?.toLowerCase() !== 'bearer') {
+    return res.status(401).json({ message: 'Unauthorized: missing Bearer token' });
+  }
   try {
     const payload = verifyAccessJwt(token);
     req.user = payload;

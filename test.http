@@ -1,7 +1,6 @@
 @BASE = http://localhost:8080
 
-@JWT = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjbWlkNGVnYjIwMDA1MHkwd2FkNTh6Z29yIiwibG9naW5JZCI6Im1pbmciLCJ0eXBlIjoiYWNjZXNzIiwianRpIjoiYzUwYjBiNGMtMWE2Yy00YzY2LWJkMjMtN2M0OGUxYzkzYjRmIiwiaWF0IjoxNzYzOTk4MDk2LCJleHAiOjE3NjM5OTg5OTZ9.wHTA2gFavlAjIO2FGsGT2boql5njUZSobme7QwqaO0A
-
+@JWT = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjbWlkNGVnYjIwMDA1MHkwd2FkNTh6Z29yIiwibG9naW5JZCI6Im1pbmciLCJ0eXBlIjoiYWNjZXNzIiwianRpIjoiNDE1ODgwMGEtMWZkNS00OGJiLThhYzItYWY1YTYxMjZhMjZhIiwiaWF0IjoxNzY0MzE0OTAyLCJleHAiOjE3NjQzMTU4MDJ9.6WoWBKThMhk9OlXmrgJWgxW68U2Ztgwxdnti8DXx_Mg
 ### 회원가입
 
 POST http://localhost:8080/api/auth/signup
@@ -218,7 +217,6 @@ Content-Type: application/json
 ### 2. 방 목록 조회 (전체)
 
 GET {{BASE}}/api/rooms
-
 Authorization: Bearer {{JWT}}
 
 
@@ -226,7 +224,6 @@ Authorization: Bearer {{JWT}}
 ### 3. 방 검색 (출발지 필터 + 자리 남은 방만)
 
 GET {{BASE}}/api/rooms?departureLabel=강남역&hasSeat=true
-
 Authorization: Bearer {{JWT}}
 
 
@@ -234,7 +231,6 @@ Authorization: Bearer {{JWT}}
 ### 4. 방 상세 조회
 
 GET {{BASE}}/api/rooms/{{ROOM_ID}}
-
 Authorization: Bearer {{JWT}}
 
 
@@ -242,12 +238,8 @@ Authorization: Bearer {{JWT}}
 ### 5. 방 수정 (방장 계정으로만 테스트!)
 
 PATCH {{BASE}}/api/rooms/{{ROOM_ID}}
-
 Authorization: Bearer {{JWT}}
-
 Content-Type: application/json
-
-
 
 {
 
@@ -380,12 +372,12 @@ POST {{BASE}}/api/auth/signup
 Content-Type: application/json
 
 {
-  "loginId": "ming",
+  "loginId": "test",
   "password": "123456789!",
-  "name": "사임",
-  "gender": "F",
-  "phone": "010-3370-7588",
-  "birthDate": "2004-02-12",
+  "name": "test",
+  "gender": "M",
+  "phone": "010-3320-7588",
+  "birthDate": "2004-01-12",
   "smsConsent": true,
   "termsConsent": true
 }

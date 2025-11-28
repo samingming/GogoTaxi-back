@@ -4,10 +4,13 @@ exports.requireAuth = requireAuth;
 const jwt_1 = require("../lib/jwt");
 function requireAuth(req, res, next) {
     const header = req.headers.authorization; // "Bearer <token>"
-    if (!header || !header.startsWith('Bearer ')) {
+    if (!header) {
         return res.status(401).json({ message: 'Unauthorized: missing Bearer token' });
     }
-    const token = header.slice('Bearer '.length);
+    const [scheme, token] = header.split(' ');
+    if (!token || scheme?.toLowerCase() !== 'bearer') {
+        return res.status(401).json({ message: 'Unauthorized: missing Bearer token' });
+    }
     try {
         const payload = (0, jwt_1.verifyAccessJwt)(token);
         req.user = payload;

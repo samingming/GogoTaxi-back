@@ -73,6 +73,7 @@ model RoomParticipant {
   user User @relation(fields: [userId], references: [id])
 
   @@unique([roomId, userId])
+  @@unique([roomId, seatNumber])
 }
 
 model WalletTransaction {

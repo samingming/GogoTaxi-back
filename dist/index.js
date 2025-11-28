@@ -10,7 +10,6 @@ const pino_1 = __importDefault(require("pino"));
 const pino_http_1 = __importDefault(require("pino-http"));
 const env_1 = require("./config/env");
 const routes_1 = require("./routes");
-const room_routes_1 = __importDefault(require("./routes/room.routes"));
 const security_1 = require("./middlewares/security");
 const error_1 = require("./middlewares/error");
 const logger = (0, pino_1.default)({ transport: { target: 'pino-pretty' } });
@@ -68,4 +67,3 @@ app.use(error_1.errorHandler);
 app.listen(PORT, "0.0.0.0", () => {
     console.log(`Server listening on ${PORT}`);
 });
-app.use("/api", room_routes_1.default);
