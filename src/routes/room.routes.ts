@@ -23,6 +23,7 @@ router.patch('/rooms/:id', requireAuth, roomController.updateRoom);
 // 방 참여 / 나가기
 router.post('/rooms/:id/join', requireAuth, roomController.joinRoom);
 router.post('/rooms/:id/leave', requireAuth, roomController.leaveRoom);
+router.patch('/rooms/:id/seat', requireAuth, roomController.changeSeat);
 
 router.post('/rooms/join', requireAuth, (req, res) => {
   const roomId = req.body?.roomId;

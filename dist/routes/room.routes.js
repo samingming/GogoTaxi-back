@@ -51,6 +51,7 @@ router.patch('/rooms/:id', auth_1.requireAuth, roomController.updateRoom);
 // 방 참여 / 나가기
 router.post('/rooms/:id/join', auth_1.requireAuth, roomController.joinRoom);
 router.post('/rooms/:id/leave', auth_1.requireAuth, roomController.leaveRoom);
+router.patch('/rooms/:id/seat', auth_1.requireAuth, roomController.changeSeat);
 router.post('/rooms/join', auth_1.requireAuth, (req, res) => {
     const roomId = req.body?.roomId;
     if (!roomId || typeof roomId !== 'string') {

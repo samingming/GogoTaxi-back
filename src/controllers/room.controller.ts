@@ -102,6 +102,10 @@ const joinRoomSchema = z.object({
   seatNumber: optionalSeatNumberField
 });
 
+const changeSeatSchema = z.object({
+  seatNumber: z.coerce.number().int().min(1)
+});
+
 // 매칭 API 쿼리 스키마
 const matchRoomsSchema = z
   .object({
@@ -714,6 +718,73 @@ export async function joinRoom(req: Request, res: Response) {
   }
 }
 
+export async function changeSeat(req: Request, res: Response) {
+  const param = roomParamSchema.safeParse(req.params);
+  if (!param.success) {
+    return respondValidationError(res, param.error);
+  }
+  const body = changeSeatSchema.safeParse(req.body);
+  if (!body.success) {
+    return respondValidationError(res, body.error);
+  }
+  const userId = (req as any).user?.sub;
+  if (!userId) {
+    return res.status(401).json({ message: 'Unauthorized' });
+  }
+
+  try {
+    const room = await prisma.room.findUnique({
+      where: { id: param.data.id },
+      select: {
+        id: true,
+        capacity: true,
+        participants: {
+          select: {
+            id: true,
+            userId: true,
+            seatNumber: true
+          }
+        }
+      }
+    });
+    if (!room) {
+      return res.status(404).json({ message: 'Room not found' });
+    }
+
+    if (body.data.seatNumber > room.capacity) {
+      return res.status(400).json({ message: 'Seat number exceeds room capacity' });
+    }
+
+    const participant = room.participants.find(p => p.userId === userId);
+    if (!participant) {
+      return res.status(404).json({ message: 'Not participating in this room' });
+    }
+
+    if (participant.seatNumber === body.data.seatNumber) {
+      const noopRoom = await loadRoomOrThrow(room.id);
+      return res.json({ room: serializeRoom(noopRoom, userId) });
+    }
+
+    const taken = room.participants.some(
+      p => p.seatNumber === body.data.seatNumber && p.userId !== userId
+    );
+    if (taken) {
+      return res.status(409).json({ message: 'Seat already taken' });
+    }
+
+    await prisma.roomParticipant.update({
+      where: { id: participant.id },
+      data: { seatNumber: body.data.seatNumber }
+    });
+
+    const updated = await loadRoomOrThrow(room.id);
+    return res.json({ room: serializeRoom(updated, userId) });
+  } catch (error) {
+    console.error('changeSeat error', error);
+    return res.status(500).json({ message: 'Failed to change seat' });
+  }
+}
+
 /**
  * 방 참여 취소 (leave)
  */
@@ -783,3 +854,4 @@ export async function leaveRoom(req: Request, res: Response) {
     return res.status(500).json({ message: 'Failed to leave room' });
   }
 }
+
