@@ -1,8 +1,6 @@
 @BASE = http://localhost:8080
 
-@JWT = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjbWlkNGVnYjIwMDA1MHkwd2FkNTh6Z29yIiwibG9naW5JZCI6Im1pbmciLCJ0eXBlIjoiYWNjZXNzIiwianRpIjoiYzUwYjBiNGMtMWE2Yy00YzY2LWJkMjMtN2M0OGUxYzkzYjRmIiwiaWF0IjoxNzYzOTk4MDk2LCJleHAiOjE3NjM5OTg5OTZ9.wHTA2gFavlAjIO2FGsGT2boql5njUZSobme7QwqaO0A
-
-@ACCESS = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjbWlkNGg5dnkwMDAwcGg0OG1jZmU0cnIyIiwibG9naW5JZCI6InllZXVuZWUiLCJ0eXBlIjoiYWNjZXNzIiwianRpIjoiZTcwMGZjMTQtM2Y2MS00MTU4LWE0YWYtN2YzNTI3M2M3MDBhIiwiaWF0IjoxNzY0MTY5NjExLCJleHAiOjE3NjQxNzA1MTF9.H0EWDiZO9u5rNO7uF9w6RIQhcSdno5TGBMarWhdzP5A
+@ACCESS = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjbWlkNGg5dnkwMDAwcGg0OG1jZmU0cnIyIiwibG9naW5JZCI6InllZXVuZWUiLCJ0eXBlIjoiYWNjZXNzIiwianRpIjoiMzEzY2Y1NDQtM2RjOS00YmQ0LTlhOWEtMjE4ODMwNzRhOTc5IiwiaWF0IjoxNzY0NDI0ODgyLCJleHAiOjE3NjQ0MjU3ODJ9._4UYfaWOiaSE8vpygCsKmS7xmGxiyGSFgrsGXCKUZLk
 @REFRESH = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjbWlkNGg5dnkwMDAwcGg0OG1jZmU0cnIyIiwibG9naW5JZCI6InllZXVuZWUiLCJ0eXBlIjoicmVmcmVzaCIsImp0aSI6ImY5M2MwODNmLTA2ZTItNDYwMy05N2YzLWNmZjc2OTA0NjVlMiIsImlhdCI6MTc2NDE2OTYxMSwiZXhwIjoxNzY1Mzc5MjExfQ.0mnj0eDQj_Nb-KMYnDZUkQF5LQR3hXIYygrvLqbbOnM
 ### Health Check
 GET {{BASE}}/health
@@ -117,7 +115,7 @@ Content-Type: application/json
 ### - JWT는 위에서 로그인 해서 직접 복사해 넣기 (@JWT 갱신 필수!)
 
 POST {{BASE}}/api/rooms
-Authorization: Bearer {{JWT}}
+Authorization: Bearer {{ACCESS}}
 Content-Type: application/json
 
 
@@ -153,14 +151,13 @@ Content-Type: application/json
 
 ###    아래 @ROOM_ID 자리에 넣어줘야 해
 
-@ROOM_ID = cmicun6po0001ngvnwhud00xq
+@ROOM_ID = cmikd9rtg000hphnkn5h8amk0
 
 
 ### 2. 방 목록 조회 (전체)
 
 GET {{BASE}}/api/rooms
-
-Authorization: Bearer {{JWT}}
+Authorization: Bearer {{ACCESS}}
 
 
 
@@ -168,27 +165,22 @@ Authorization: Bearer {{JWT}}
 
 GET {{BASE}}/api/rooms?departureLabel=강남역&hasSeat=true
 
-Authorization: Bearer {{JWT}}
+Authorization: Bearer {{ACCESS}}
 
 
 
 ### 4. 방 상세 조회
 
 GET {{BASE}}/api/rooms/{{ROOM_ID}}
-
-Authorization: Bearer {{JWT}}
+Authorization: Bearer {{ACCESS}}
 
 
 
 ### 5. 방 수정 (방장 계정으로만 테스트!)
 
 PATCH {{BASE}}/api/rooms/{{ROOM_ID}}
-
-Authorization: Bearer {{JWT}}
-
+Authorization: Bearer {{ACCESS}}
 Content-Type: application/json
-
-
 
 {
 
@@ -215,12 +207,8 @@ Content-Type: application/json
 ### - 현재 로그인한 사용자(@JWT)로, 위에서 만든 ROOM_ID 방에 참여
 
 POST {{BASE}}/api/rooms/{{ROOM_ID}}/join
-
-Authorization: Bearer {{JWT}}
-
+Authorization: Bearer {{ACCESS}}
 Content-Type: application/json
-
-
 
 {
 
@@ -235,8 +223,7 @@ Content-Type: application/json
 ### - 바로 위에서 참여한 사용자가 방에서 나가기
 
 POST {{BASE}}/api/rooms/{{ROOM_ID}}/leave
-
-Authorization: Bearer {{JWT}}
+Authorization: Bearer {{ACCESS}}
 
 
 
@@ -251,16 +238,14 @@ Authorization: Bearer {{JWT}}
 ### 9. 매칭 테스트 - 현재 위치 기준 반경 3km 안, 좌석 1자리 이상 남은 open 방
 
 GET {{BASE}}/api/rooms/match?departureLat=35.8461&departureLng=127.1291&radiusKm=3&seatsNeeded=1
-
-Authorization: Bearer {{JWT}}
+Authorization: Bearer {{ACCESS}}
 
 
 
 ### 10. 매칭 테스트 - 시간 조건 포함 (오늘 ~ 내일)
 
 GET {{BASE}}/api/rooms/match?departureLat=35.8461&departureLng=127.1291&radiusKm=3&seatsNeeded=1&earliest=2025-11-20T00:00:00.000Z&latest=2025-11-21T00:00:00.000Z
-
-Authorization: Bearer {{JWT}}
+Authorization: Bearer {{ACCESS}}
 
 
 
@@ -277,34 +262,25 @@ Authorization: Bearer {{JWT}}
 ### - refLat/refLng에 현재 위치(또는 희망 출발지) 위도/경도 입력
 
 GET {{BASE}}/api/rooms?sortBy=departureDistance&refLat=35.1796&refLng=129.0756
-
-Authorization: Bearer {{JWT}}
+Authorization: Bearer {{ACCESS}}
 
 
 
 ### 12. 정렬 - 도착지 가까운 순
 
 GET {{BASE}}/api/rooms?sortBy=arrivalDistance&refLat=35.1796&refLng=129.0756
-
-Authorization: Bearer {{JWT}}
+Authorization: Bearer {{ACCESS}}
 
 
 
 ### 13. 정렬 - 출발 시간 가까운 순
 
 GET {{BASE}}/api/rooms?sortBy=time
-
-Authorization: Bearer {{JWT}}
-
-### ?? ? ??
-GET {{BASE}}/api/rooms/mine
-Authorization: Bearer {{JWT}}
-
-
+Authorization: Bearer {{ACCESS}}
 
 
 ### 나의 방
 
 ### 나의 방 목록
 GET {{BASE}}/api/rooms/mine
-Authorization: Bearer {{JWT}}
+Authorization: Bearer {{ACCESS}}

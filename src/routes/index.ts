@@ -3,6 +3,7 @@ import { authRouter } from '../modules/auth/routes';
 import { requireAuth } from '../middlewares/auth';
 import { prisma } from '../lib/prisma';
 import roomRouter from './room.routes';
+import rideRouter from './ride.routes';
 
 export const router = Router();
 
@@ -12,6 +13,7 @@ router.get('/health', (_req, res) => {
 
 router.use('/auth', authRouter);
 router.use(roomRouter);
+router.use(rideRouter);
 
 router.get('/notifications', requireAuth, async (_req, res) => {
   try {
