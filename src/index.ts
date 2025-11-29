@@ -3,10 +3,12 @@ import cors from 'cors';
 import helmet from 'helmet';
 import pino from 'pino';
 import pinoHttp from 'pino-http';
+import { createServer } from 'http';
 import { ENV } from './config/env';
 import { router } from './routes';
 import { requestLimiter } from './middlewares/security';
 import { errorHandler, notFoundHandler } from './middlewares/error';
+import { initSocket } from './lib/socket';
 
 const logger = pino({ transport: { target: 'pino-pretty' } });
 const app = express();
@@ -74,6 +76,9 @@ app.use('/api', router);
 app.use(notFoundHandler);
 app.use(errorHandler);
 
-app.listen(PORT, "0.0.0.0", () => {
+const server = createServer(app);
+initSocket(server);
+
+server.listen(PORT, "0.0.0.0", () => {
   console.log(`Server listening on ${PORT}`);
 });
