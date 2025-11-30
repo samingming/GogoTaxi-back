@@ -45,28 +45,33 @@ const rideStageUpdateSchema = z.object({
 const roomParamSchema = z.object({ id: z.string().cuid() });
 
 const toDecimal = (value: number) => new Prisma.Decimal(value);
+const DEFAULT_UBER_CLIENT_ID = 'gogotaxi-demo';
 
-function buildUberDeeplink(payload: z.infer<typeof uberDeeplinkSchema>) {
-  const url = new URL('https://m.uber.com/ul/');
-  url.searchParams.set('action', 'setPickup');
-  url.searchParams.set('client_id', ENV.UBER_CLIENT_ID as string);
-  url.searchParams.set('pickup[latitude]', payload.pickupLat.toString());
-  url.searchParams.set('pickup[longitude]', payload.pickupLng.toString());
+function buildUberDeeplinkUrls(payload: z.infer<typeof uberDeeplinkSchema>) {
+  const clientId = ENV.UBER_CLIENT_ID || DEFAULT_UBER_CLIENT_ID;
+  const web = new URL('https://m.uber.com/ul/');
+  web.searchParams.set('action', 'setPickup');
+  web.searchParams.set('client_id', clientId);
+  web.searchParams.set('pickup[latitude]', payload.pickupLat.toString());
+  web.searchParams.set('pickup[longitude]', payload.pickupLng.toString());
   if (payload.pickupNickname) {
-    url.searchParams.set('pickup[nickname]', payload.pickupNickname);
+    web.searchParams.set('pickup[nickname]', payload.pickupNickname);
   }
-  url.searchParams.set('dropoff[latitude]', payload.dropoffLat.toString());
-  url.searchParams.set('dropoff[longitude]', payload.dropoffLng.toString());
+  web.searchParams.set('dropoff[latitude]', payload.dropoffLat.toString());
+  web.searchParams.set('dropoff[longitude]', payload.dropoffLng.toString());
   if (payload.dropoffNickname) {
-    url.searchParams.set('dropoff[nickname]', payload.dropoffNickname);
+    web.searchParams.set('dropoff[nickname]', payload.dropoffNickname);
   }
   if (payload.productId) {
-    url.searchParams.set('product_id', payload.productId);
+    web.searchParams.set('product_id', payload.productId);
   }
   if (payload.pickupTime) {
-    url.searchParams.set('pickup[time]', Math.floor(payload.pickupTime.getTime() / 1000).toString());
+    web.searchParams.set('pickup[time]', Math.floor(payload.pickupTime.getTime() / 1000).toString());
   }
-  return url.toString();
+
+  // Native scheme for iOS/Android app deep links; some devices ignore the web URL params.
+  const app = `uber://?${web.searchParams.toString()}`;
+  return { web: web.toString(), app };
 }
 
 function allowedNextStages(current: RoomRideStage): RoomRideStage[] {
@@ -92,14 +97,10 @@ export function createUberDeeplink(req: Request, res: Response) {
     return res.status(400).json({ message: 'Validation failed', issues: parsed.error.issues });
   }
 
-  if (!ENV.UBER_CLIENT_ID) {
-    return res.status(500).json({ message: 'Uber client ID is not configured on the server' });
-  }
-
   const payload = parsed.data;
-  const url = buildUberDeeplink(payload);
+  const deeplinks = buildUberDeeplinkUrls(payload);
 
-  return res.json({ url });
+  return res.json({ url: deeplinks.web, appUrl: deeplinks.app });
 }
 
 export async function getRoomRideState(req: Request, res: Response) {
@@ -122,25 +123,28 @@ export async function requestRoomUberRide(req: Request, res: Response) {
   if (!param.success) {
     return res.status(400).json({ message: 'Validation failed', issues: param.error.issues });
   }
-  const merged = { ...(req.query as Record<string, unknown>), ...(req.body as Record<string, unknown>) };
-  const parsed = uberDeeplinkSchema.safeParse(merged);
-  if (!parsed.success) {
-    return res.status(400).json({ message: 'Validation failed', issues: parsed.error.issues });
-  }
-
-  if (!ENV.UBER_CLIENT_ID) {
-    return res.status(500).json({ message: 'Uber client ID is not configured on the server' });
-  }
-
   const userId = (req as any).user?.sub;
   if (!userId) {
     return res.status(401).json({ message: 'Unauthorized' });
   }
 
   try {
+    // Load room early so we can supply missing pickup/dropoff data from the room itself.
     const room = await prisma.room.findUnique({
       where: { id: param.data.id },
-      select: { id: true, creatorId: true, status: true, capacity: true, participants: true }
+      select: {
+        id: true,
+        creatorId: true,
+        status: true,
+        capacity: true,
+        participants: true,
+        departureLabel: true,
+        departureLat: true,
+        departureLng: true,
+        arrivalLabel: true,
+        arrivalLat: true,
+        arrivalLng: true
+      }
     });
     if (!room) {
       return res.status(404).json({ message: 'Room not found' });
@@ -152,15 +156,36 @@ export async function requestRoomUberRide(req: Request, res: Response) {
       return res.status(400).json({ message: 'Room capacity exceeded' });
     }
 
+    // Merge client payload with room defaults so front-end can omit coordinates/labels.
+    const merged = { ...(req.query as Record<string, unknown>), ...(req.body as Record<string, unknown>) };
+    const mergedWithDefaults = {
+      pickupLat: merged.pickupLat ?? room.departureLat?.toNumber(),
+      pickupLng: merged.pickupLng ?? room.departureLng?.toNumber(),
+      pickupLabel: merged.pickupLabel ?? merged.pickupNickname ?? room.departureLabel,
+      dropoffLat: merged.dropoffLat ?? room.arrivalLat?.toNumber(),
+      dropoffLng: merged.dropoffLng ?? room.arrivalLng?.toNumber(),
+      dropoffLabel: merged.dropoffLabel ?? merged.dropoffNickname ?? room.arrivalLabel,
+      pickupNickname: merged.pickupNickname,
+      dropoffNickname: merged.dropoffNickname,
+      productId: merged.productId,
+      pickupTime: merged.pickupTime,
+      note: merged.note
+    };
+
+    const parsed = uberDeeplinkSchema.safeParse(mergedWithDefaults);
+    if (!parsed.success) {
+      return res.status(400).json({ message: 'Validation failed', issues: parsed.error.issues });
+    }
+
     const payload = parsed.data;
-    const url = buildUberDeeplink(payload);
+    const deeplinks = buildUberDeeplinkUrls(payload);
 
     const rideState = await prisma.roomRideState.upsert({
       where: { roomId: room.id },
       create: {
         roomId: room.id,
-        stage: RoomRideStage.deeplink_ready,
-        deeplinkUrl: url,
+        stage: RoomRideStage.requesting,
+        deeplinkUrl: deeplinks.web,
         pickupLabel: payload.pickupNickname ?? payload.pickupLabel ?? null,
         pickupLat: toDecimal(payload.pickupLat),
         pickupLng: toDecimal(payload.pickupLng),
@@ -171,8 +196,8 @@ export async function requestRoomUberRide(req: Request, res: Response) {
         updatedById: userId
       },
       update: {
-        stage: RoomRideStage.deeplink_ready,
-        deeplinkUrl: url,
+        stage: RoomRideStage.requesting,
+        deeplinkUrl: deeplinks.web,
         pickupLabel: payload.pickupNickname ?? payload.pickupLabel ?? null,
         pickupLat: toDecimal(payload.pickupLat),
         pickupLng: toDecimal(payload.pickupLng),
@@ -193,7 +218,8 @@ export async function requestRoomUberRide(req: Request, res: Response) {
     return res.status(201).json({
       rideState: serializeRideState(rideState),
       room: serializeRoom(updatedRoom, userId),
-      url
+      url: deeplinks.web,
+      appUrl: deeplinks.app
     });
   } catch (error) {
     console.error('requestRoomUberRide error', error);

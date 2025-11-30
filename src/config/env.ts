@@ -19,7 +19,8 @@ export const ENV = {
   SOCIAL_LOGIN_SUCCESS_REDIRECT_URI: process.env.SOCIAL_LOGIN_SUCCESS_REDIRECT_URI ?? '',
   GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID ?? '',
   GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET ?? '',
-  UBER_CLIENT_ID: process.env.UBER_CLIENT_ID ?? ''
+  // Prefer backend env, fall back to Vite prefix used by the front-end to reduce setup friction.
+  UBER_CLIENT_ID: process.env.UBER_CLIENT_ID ?? process.env.VITE_UBER_CLIENT_ID ?? ''
 };
 
 if (!ENV.DATABASE_URL) {

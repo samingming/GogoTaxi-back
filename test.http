@@ -1,7 +1,7 @@
 @BASE = http://localhost:8080
 
-@ACCESS = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjbWlkNGg5dnkwMDAwcGg0OG1jZmU0cnIyIiwibG9naW5JZCI6InllZXVuZWUiLCJ0eXBlIjoiYWNjZXNzIiwianRpIjoiMzEzY2Y1NDQtM2RjOS00YmQ0LTlhOWEtMjE4ODMwNzRhOTc5IiwiaWF0IjoxNzY0NDI0ODgyLCJleHAiOjE3NjQ0MjU3ODJ9._4UYfaWOiaSE8vpygCsKmS7xmGxiyGSFgrsGXCKUZLk
-@REFRESH = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjbWlkNGg5dnkwMDAwcGg0OG1jZmU0cnIyIiwibG9naW5JZCI6InllZXVuZWUiLCJ0eXBlIjoicmVmcmVzaCIsImp0aSI6ImY5M2MwODNmLTA2ZTItNDYwMy05N2YzLWNmZjc2OTA0NjVlMiIsImlhdCI6MTc2NDE2OTYxMSwiZXhwIjoxNzY1Mzc5MjExfQ.0mnj0eDQj_Nb-KMYnDZUkQF5LQR3hXIYygrvLqbbOnM
+@ACCESS = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjbWlkNGg5dnkwMDAwcGg0OG1jZmU0cnIyIiwibG9naW5JZCI6InllZXVuZWUiLCJ0eXBlIjoiYWNjZXNzIiwianRpIjoiY2JiZTY5ZDQtMTM2Yi00ZmY3LWI5MjctOGJiMWY4MTc1NDBlIiwiaWF0IjoxNzY0NTA5OTEzLCJleHAiOjE3NjQ1MTA4MTN9.C1PmAQu69As2ChJjgWX25J8Y67D61JIUYcsHTyINsl0
+@REFRESH = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjbWlkNGg5dnkwMDAwcGg0OG1jZmU0cnIyIiwibG9naW5JZCI6InllZXVuZWUiLCJ0eXBlIjoicmVmcmVzaCIsImp0aSI6ImQwYzRjYTRkLTNhZjYtNGU4MC1iMTY1LTMzNTRiYTRhYjIwMSIsImlhdCI6MTc2NDUwOTkxMywiZXhwIjoxNzY1NzE5NTEzfQ.SjOLlrcxrwBi_RRo07bQuxR23xVfsHfjdFdZuQbUclU
 ### Health Check
 GET {{BASE}}/health
 
@@ -120,29 +120,17 @@ Content-Type: application/json
 
 
 {
-
-  "title": "사이미",
-
-  "departureLabel": "전북대 구정문",
-
+  "title": "11/30 22:39",
+  "departureLabel": "창의",
   "departureLat": 35.846100,
-
   "departureLng": 127.129100,
-
-  "arrivalLabel": "전주 시외버스터미널",
-
+  "arrivalLabel": "공7",
   "arrivalLat": 35.825000,
-
   "arrivalLng": 127.148000,
-
-  "departureTime": "2025-11-20T15:30:00.000Z",
-
+  "departureTime": "2025-11-30T24:00:00.000Z",
   "capacity": 4,
-
   "priority": "time",
-
-  "estimatedFare": 12000
-
+  "estimatedFare": 7000
 }
 
 
@@ -151,7 +139,7 @@ Content-Type: application/json
 
 ###    아래 @ROOM_ID 자리에 넣어줘야 해
 
-@ROOM_ID = cmikd9rtg000hphnkn5h8amk0
+@ROOM_ID = cmilro1z40005ph4s7uvl9su0
 
 
 ### 2. 방 목록 조회 (전체)
@@ -164,7 +152,6 @@ Authorization: Bearer {{ACCESS}}
 ### 3. 방 검색 (출발지 필터 + 자리 남은 방만)
 
 GET {{BASE}}/api/rooms?departureLabel=강남역&hasSeat=true
-
 Authorization: Bearer {{ACCESS}}
 
 
@@ -284,3 +271,59 @@ Authorization: Bearer {{ACCESS}}
 ### 나의 방 목록
 GET {{BASE}}/api/rooms/mine
 Authorization: Bearer {{ACCESS}}
+
+
+
+########################################################
+
+### Uber 호출 테스트
+
+########################################################
+
+### Uber 딥링크 생성 (GET 지원 안해서 POST 사용)
+POST {{BASE}}/api/rides/uber/deeplink
+Authorization: Bearer {{ACCESS}}
+Content-Type: application/json
+
+{
+  "pickupLat": 37.498004,
+  "pickupLng": 127.027706,
+  "pickupNickname": "강남역 2번 출구",
+  "dropoffLat": 37.507341,
+  "dropoffLng": 127.029317,
+  "dropoffNickname": "강남역 1번 출구",
+  "note": "테스트 호출"
+}
+
+### 방 내부에서 호출 요청 (룸 상태에 deeplink/stage 반영)
+### 여기서는 실제 존재하는 ROOM_ID 를 넣어주세요.
+POST {{BASE}}/api/rooms/{{ROOM_ID}}/ride/request
+Authorization: Bearer {{ACCESS}}
+Content-Type: application/json
+
+{
+  "pickupLat": 37.498004,
+  "pickupLng": 127.027706,
+  "pickupNickname": "강남역 2번 출구",
+  "dropoffLat": 37.507341,
+  "dropoffLng": 127.029317,
+  "dropoffNickname": "강남역 1번 출구",
+  "note": "방 내부 호출 테스트"
+}
+
+### 호출 상태 조회
+GET {{BASE}}/api/rooms/{{ROOM_ID}}/ride-state
+Authorization: Bearer {{ACCESS}}
+
+### (호스트 전용) 호출 단계 업데이트
+POST {{BASE}}/api/rooms/{{ROOM_ID}}/ride/stage
+Authorization: Bearer {{ACCESS}}
+Content-Type: application/json
+
+{
+  "stage": "dispatching",
+  "driverName": "홍길동",
+  "carModel": "Avante",
+  "carNumber": "12가 3456",
+  "note": "기사님 곧 도착"
+}

@@ -5,7 +5,9 @@ import pino from 'pino';
 import pinoHttp from 'pino-http';
 import { createServer } from 'http';
 import { ENV } from './config/env';
-import { router } from './routes';
+// Use the routes/index.ts (folder) router which includes ride-related endpoints.
+// Explicitly import the router defined in src/routes/index.ts (not the legacy src/routes.ts)
+import { router } from './routes/index';
 import { requestLimiter } from './middlewares/security';
 import { errorHandler, notFoundHandler } from './middlewares/error';
 import { initSocket } from './lib/socket';
