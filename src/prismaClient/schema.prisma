@@ -9,11 +9,11 @@ datasource db {
 }
 
 model User {
-  id            String   @id @default(cuid())
+  id            String    @id @default(cuid())
   name          String?
-  loginId       String   @unique @map("login_id")
-  email         String?  @unique
-  passwordHash  String?  @map("password_hash") // social-only 계정은 null 허용
+  loginId       String    @unique @map("login_id")
+  email         String?   @unique
+  passwordHash  String?   @map("password_hash") // social-only 계정은 null 허용
   gender        Gender?
   phone         String?
   birthDate     DateTime? @map("birth_date")
@@ -23,12 +23,12 @@ model User {
   createdAt     DateTime  @default(now()) @map("created_at")
   updatedAt     DateTime  @updatedAt
 
-  roomsCreated     Room[]             @relation("RoomCreator")
-  roomParticipants RoomParticipant[]
-  reviews          Review[]           @relation("UserReviews")
-  reports          Report[]           @relation("UserReports")
-  refreshTokens    RefreshToken[]
-  socialAccounts   SocialAccount[]
+  roomsCreated       Room[]              @relation("RoomCreator")
+  roomParticipants   RoomParticipant[]
+  reviews            Review[]            @relation("UserReviews")
+  reports            Report[]            @relation("UserReports")
+  refreshTokens      RefreshToken[]
+  socialAccounts     SocialAccount[]
   walletTransactions WalletTransaction[]
   settlements        RoomSettlement[]
   rideHistory        RideHistory[]
@@ -113,19 +113,19 @@ model RoomSettlement {
 }
 
 model RideHistory {
-  id           String          @id @default(cuid())
-  roomId       String          @map("room_id")
-  room         Room            @relation(fields: [roomId], references: [id])
-  userId       String          @map("user_id")
-  user         User            @relation(fields: [userId], references: [id])
+  id           String         @id @default(cuid())
+  roomId       String         @map("room_id")
+  room         Room           @relation(fields: [roomId], references: [id])
+  userId       String         @map("user_id")
+  user         User           @relation(fields: [userId], references: [id])
   role         SettlementRole
-  deposit      Int             @default(0)
-  extraCollect Int             @default(0) @map("extra_collect")
-  refund       Int             @default(0)
-  netAmount    Int             @default(0) @map("net_amount")
-  actualFare   Int             @map("actual_fare")
-  settledAt    DateTime        @default(now()) @map("settled_at")
-  createdAt    DateTime        @default(now()) @map("created_at")
+  deposit      Int            @default(0)
+  extraCollect Int            @default(0) @map("extra_collect")
+  refund       Int            @default(0)
+  netAmount    Int            @default(0) @map("net_amount")
+  actualFare   Int            @map("actual_fare")
+  settledAt    DateTime       @default(now()) @map("settled_at")
+  createdAt    DateTime       @default(now()) @map("created_at")
 
   @@unique([roomId, userId])
   @@index([userId])
