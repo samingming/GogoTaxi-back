@@ -95,6 +95,53 @@ function normalizeLooseText(value: string): string {
     .replace(/[\s\p{P}\p{S}]+/gu, '');
 }
 
+function parseCurrencyMaxFromLine(line: string): number | null {
+  if (!line) return null;
+  const hasCurrency = /(?:\u20A9|₩|krw)/i.test(line);
+  if (!hasCurrency) return null;
+
+  const cleaned = line
+    .replace(/[,\s\u00A0]/g, '')
+    .replace(/[\uC6D0\u20A9]|KRW/gi, '');
+  const range = cleaned.match(/(\d+(?:\.\d+)?)[~-](\d+(?:\.\d+)?)/);
+  if (range) {
+    const value = Number(range[2]);
+    return Number.isFinite(value) ? value : null;
+  }
+  const nums = [...cleaned.matchAll(/\d+(?:\.\d+)?/g)]
+    .map(m => Number(m[0]))
+    .filter(n => !Number.isNaN(n));
+  if (nums.length === 0) return null;
+  return Math.max(...nums);
+}
+
+function pickGeneralTaxiAmount(text: string): number | null {
+  if (!text) return null;
+  const lines = text.split(/\r?\n/);
+  const stopTokens = ['스피드 호출', 'Uber Taxi', '블랙', '직접 결제', '차량 서비스 선택'];
+  const stopNormalized = stopTokens.map(normalizeLooseText);
+
+  const findIndex = (label: string) => lines.findIndex(line => line.includes(label));
+  const selectIndex = findIndex('일반 택시 선택');
+  const baseIndex = selectIndex !== -1 ? selectIndex : findIndex('일반 택시');
+  if (baseIndex === -1) return null;
+
+  const maxScan = Math.min(lines.length, baseIndex + 8);
+  for (let i = baseIndex; i < maxScan; i += 1) {
+    const line = lines[i];
+    if (i !== baseIndex) {
+      const normalizedLine = normalizeLooseText(line);
+      if (stopNormalized.some(token => token && normalizedLine.includes(token))) {
+        break;
+      }
+    }
+    const amount = parseCurrencyMaxFromLine(line);
+    if (amount != null) return amount;
+  }
+
+  return null;
+}
+
 function unwrapJsonFence(text: string): string {
   const trimmed = text.trim();
   const fenceMatch = trimmed.match(/```(?:json)?\s*([\s\S]*?)```/i);
@@ -293,7 +340,7 @@ export async function extractAmountFromImage(
         };
       }
 
-      const generalTaxiAmount = pickMaxAmountFromLine(combinedText, '일반 택시');
+      const generalTaxiAmount = pickGeneralTaxiAmount(combinedText);
       const amount =
         generalTaxiAmount ??
         (Number.isFinite(amountFromJson) ? amountFromJson : null);
