@@ -7,7 +7,7 @@
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "start": "node dist/index.js",
-    "build": "tsc",
+    "build": "prisma generate && tsc",
     "lint:quick": "echo 'add ESLint later'"
   },
   "keywords": [],

@@ -9,6 +9,7 @@ export const ENV = {
   JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN ?? '7d',
   JWT_ACCESS_EXPIRES_IN: process.env.JWT_ACCESS_EXPIRES_IN ?? process.env.JWT_EXPIRES_IN ?? '15m',
   JWT_REFRESH_EXPIRES_IN: process.env.JWT_REFRESH_EXPIRES_IN ?? '14d',
+  CORS_ORIGINS: process.env.CORS_ORIGINS ?? '',
   BCRYPT_SALT_ROUNDS: Number(process.env.BCRYPT_SALT_ROUNDS ?? 10),
   KAKAO_REST_API_KEY: process.env.KAKAO_REST_API_KEY ?? '',
   KAKAO_ADMIN_KEY: process.env.KAKAO_ADMIN_KEY ?? '',

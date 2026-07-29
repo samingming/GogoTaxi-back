@@ -16,18 +16,19 @@ const logger = pino({ transport: { target: 'pino-pretty' } });
 const app = express();
 
 const PORT = Number(ENV.PORT) || 8080;
+const allowedOrigins = [
+  "http://localhost:5173",
+  "https://samingming.github.io",
+  "https://ansangah.github.io",
+  ...ENV.CORS_ORIGINS.split(',').map(origin => origin.trim()).filter(Boolean)
+];
 
 app.set('etag', false);
 
 app.use(helmet());
 app.use(
   cors({
-    origin: [
-      "http://localhost:5173",
-      "https://ansangah.github.io",
-      "http://localhost:5173",
-      "http://172.17.0.255:5173"
-    ],
+    origin: allowedOrigins,
     credentials: true,
   })
 );

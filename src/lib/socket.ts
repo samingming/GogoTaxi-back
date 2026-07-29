@@ -7,7 +7,9 @@ let io: Server | null = null;
 function allowedOrigins() {
   return [
     'http://localhost:5173',
-    'https://ansangah.github.io'
+    'https://samingming.github.io',
+    'https://ansangah.github.io',
+    ...ENV.CORS_ORIGINS.split(',').map(origin => origin.trim()).filter(Boolean)
   ];
 }
 
