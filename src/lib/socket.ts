@@ -7,6 +7,7 @@ let io: Server | null = null;
 function allowedOrigins() {
   return [
     'http://localhost:5173',
+    'https://gogo-taxi-front.vercel.app',
     'https://samingming.github.io',
     'https://ansangah.github.io',
     ...ENV.CORS_ORIGINS.split(',').map(origin => origin.trim()).filter(Boolean)

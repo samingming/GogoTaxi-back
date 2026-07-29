@@ -18,6 +18,7 @@ const app = express();
 const PORT = Number(ENV.PORT) || 8080;
 const allowedOrigins = [
   "http://localhost:5173",
+  "https://gogo-taxi-front.vercel.app",
   "https://samingming.github.io",
   "https://ansangah.github.io",
   ...ENV.CORS_ORIGINS.split(',').map(origin => origin.trim()).filter(Boolean)
