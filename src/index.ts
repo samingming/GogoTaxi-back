@@ -11,25 +11,21 @@ import { router } from './routes/index';
 import { requestLimiter } from './middlewares/security';
 import { errorHandler, notFoundHandler } from './middlewares/error';
 import { initSocket } from './lib/socket';
+import { isAllowedOrigin } from './config/cors';
 
 const logger = pino({ transport: { target: 'pino-pretty' } });
 const app = express();
 
 const PORT = Number(ENV.PORT) || 8080;
-const allowedOrigins = [
-  "http://localhost:5173",
-  "https://gogo-taxi-front.vercel.app",
-  "https://samingming.github.io",
-  "https://ansangah.github.io",
-  ...ENV.CORS_ORIGINS.split(',').map(origin => origin.trim()).filter(Boolean)
-];
 
 app.set('etag', false);
 
 app.use(helmet());
 app.use(
   cors({
-    origin: allowedOrigins,
+    origin: (origin, callback) => {
+      callback(null, isAllowedOrigin(origin));
+    },
     credentials: true,
   })
 );

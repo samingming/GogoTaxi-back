@@ -1,18 +1,9 @@
 import { Server as HttpServer } from 'http';
 import { Server } from 'socket.io';
 import { ENV } from '../config/env';
+import { isAllowedOrigin } from '../config/cors';
 
 let io: Server | null = null;
-
-function allowedOrigins() {
-  return [
-    'http://localhost:5173',
-    'https://gogo-taxi-front.vercel.app',
-    'https://samingming.github.io',
-    'https://ansangah.github.io',
-    ...ENV.CORS_ORIGINS.split(',').map(origin => origin.trim()).filter(Boolean)
-  ];
-}
 
 function roomChannel(roomId: string) {
   return `room:${roomId}`;
@@ -23,7 +14,9 @@ export function initSocket(server: HttpServer) {
 
   io = new Server(server, {
     cors: {
-      origin: allowedOrigins(),
+      origin: (origin, callback) => {
+        callback(null, isAllowedOrigin(origin));
+      },
       credentials: true
     }
   });
